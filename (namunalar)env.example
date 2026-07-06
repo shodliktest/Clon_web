@@ -1,0 +1,48 @@
+# ============================================================
+# TestPro Web — Vercel Environment Variables
+# ============================================================
+# Vercel dashboard: Project → Settings → Environment Variables
+# Har birini "Production" (va agar kerak bo'lsa "Preview") uchun qo'shing.
+#
+# MUHIM: bu qadriyatlar bot ishlatadigan Supabase loyihasi bilan
+# AYNAN BIR XIL bo'lishi kerak — bot va web bitta bazaga yoziladi/
+# o'qiladi, boshqa hech qanday "sinxronlash" yo'q.
+
+# ── Supabase (MAJBURIY) ──────────────────────────────────────
+# Supabase dashboard → Project Settings → API
+SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+
+# service_role kaliti (anon EMAS!) — RLS'ni chetlab o'tib yozish/
+# o'chirish huquqi beradi. Faqat serverda (Vercel env var) saqlang,
+# hech qachon frontend kodiga yoki public repoga qo'ymang.
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....
+
+# ── Telegram (faqat rasm yuklash uchun kerak) ────────────────
+# Savol rasmlari Telegram'ga bepul CDN sifatida yuklanadi — bu
+# bot ishlatadigan XUDDI SHU bot tokeni bo'lishi kerak, chunki
+# file_id lar faqat o'sha botga tegishli.
+BOT_TOKEN=123456789:AAExampleTokenHere
+
+# Rasm saqlanadigan kanal ID (botning STORAGE_CHANNEL_ID bilan bir xil)
+STORAGE_CHANNEL_ID=-1001234567890
+
+# ── Admin panel kirishi ───────────────────────────────────────
+# Admin panelga kira oladigan Telegram ID lar, vergul bilan
+ADMIN_IDS=111111111,222222222
+
+# Admin panel paroli
+ADMIN_PASSWORD=kuchli-parol-shu-yerga
+
+# ============================================================
+# Kerakli Supabase jadvallari
+# ============================================================
+# `tests` va `users` jadvallari bot tomonidan yaratilgan bo'lishi
+# kerak (Clone-main/utils/tg_db.py bilan bir xil sxema).
+#
+# Bundan tashqari bu web uchun IKKITA YANGI jadval kerak:
+#   - results        (foydalanuvchi test natijalari)
+#   - live_sessions  (Live Monitor uchun — bot admin panelida
+#                      "web" orqali yechilayotgan testlarni ko'rsatish)
+#
+# Ularni yaratish uchun repo ildizidagi `supabase_migration.sql`
+# faylini Supabase SQL Editor'da bir marta ishga tushiring.
