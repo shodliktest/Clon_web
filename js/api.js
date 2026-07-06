@@ -3,7 +3,7 @@
    Telegram Login + proxy.js API
    ================================================================ */
 
-const BOT_USERNAME = window.TESTPRO_BOT || 'Quizmarkerbot';
+const BOT_USERNAME = window.TESTPRO_BOT || 'Quiztimeuzbot';
 const API_URL      = '/api/proxy';
 
 /* ── Navigation ── */
