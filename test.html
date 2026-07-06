@@ -1,703 +1,1492 @@
 <!DOCTYPE html>
-<html lang="uz" data-theme="light">
+<html lang="uz">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
-<title>TestPro — Test</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover"/>
+<title>TestPro — Web Test</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════════════════════════════════════
-   TESTPRO — Test sahifasi
-   index.html uslubida: clean, professional
-═══════════════════════════════════════════ */
-:root{
-  --bg:#F0F4FF;
-  --card:#FFFFFF;
-  --text:#0F172A;
-  --text2:#475569;
-  --text3:#94A3B8;
-  --acc:#4F46E5;
-  --acc2:#7C3AED;
-  --green:#059669;
-  --red:#DC2626;
-  --amber:#D97706;
-  --border:rgba(79,70,229,.12);
-  --border2:rgba(0,0,0,.07);
-  --shadow:0 4px 20px rgba(79,70,229,.1);
-  --shadow2:0 2px 8px rgba(0,0,0,.06);
-  --navbar:rgba(240,244,255,.95);
-  --grad:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);
-  --grad-green:linear-gradient(135deg,#059669 0%,#047857 100%);
-}
-[data-theme=dark]{
-  --bg:#080818;
-  --card:#0F0F24;
-  --text:#E8E8FF;
-  --text2:#8B8BB0;
-  --text3:#555580;
-  --border:rgba(79,70,229,.2);
-  --border2:rgba(255,255,255,.07);
-  --shadow:0 4px 20px rgba(0,0,0,.35);
-  --shadow2:0 2px 8px rgba(0,0,0,.25);
-  --navbar:rgba(8,8,24,.96);
-}
+  /* ════════════════════════════════════════════════
+     TestPro — Premium Elegant Pro Theme
+     Sapphire academic glassmorphism + light motion
+     (struktura/JS/class/id oʻzgarmagan, faqat dizayn)
+  ════════════════════════════════════════════════ */
+  :root{
+    --ink:#101a33;
+    --ink-soft:#33446b;
+    --ink-mute:#6a7fa8;
+    --sapphire:#3461d6;
+    --sapphire-lo:#5b8cf5;
+    --sapphire-hi:#7fb0ff;
+    --glass:rgba(255,255,255,0.40);
+    --glass-2:rgba(255,255,255,0.52);
+    --glass-line:rgba(150,185,255,0.45);
+    --ok:#0fa968;
+    --ok-deep:#0a7a4b;
+    --bad:#e23b4e;
+    --bad-deep:#a51d2c;
+    --gold:#d9a341;
+    --shadow:0 10px 34px rgba(40,78,170,0.16);
+    --shadow-sm:0 4px 16px rgba(40,78,170,0.12);
+    --ease:cubic-bezier(.34,1.32,.55,1);
+  }
 
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
-body{
-  font-family:'Plus Jakarta Sans',sans-serif;
-  min-height:100vh;background:var(--bg);color:var(--text);
-  background-image:
-    radial-gradient(ellipse at 20% 10%,rgba(79,70,229,.07) 0%,transparent 60%),
-    radial-gradient(ellipse at 80% 90%,rgba(124,58,237,.05) 0%,transparent 55%);
-}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ── Nav ── */
-.nav{
-  position:fixed;top:0;left:0;right:0;height:54px;z-index:500;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 1rem;
-  background:var(--navbar);backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);
-}
-.logo{
-  font-family:'Unbounded',sans-serif;font-size:.95rem;font-weight:900;
-  cursor:pointer;background:var(--grad);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.nav-right{display:flex;align-items:center;gap:.5rem}
-.ibtn{
-  width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border2);
-  background:var(--card);cursor:pointer;font-size:.85rem;
-  display:flex;align-items:center;justify-content:center;
-  color:var(--text);transition:all .2s;
-}
-.ibtn:hover{border-color:var(--acc);color:var(--acc)}
-.timer-box{
-  font-family:'Unbounded',sans-serif;font-size:.8rem;font-weight:900;
-  color:var(--acc);background:rgba(79,70,229,.1);
-  border:1.5px solid rgba(79,70,229,.2);
-  border-radius:99px;padding:.28rem .75rem;letter-spacing:.02em;
-}
-.timer-box.warn{
-  color:var(--red);background:rgba(220,38,38,.1);
-  border-color:rgba(220,38,38,.3);animation:blink 1s infinite;
-}
-@keyframes blink{50%{opacity:.55}}
+  html{ scroll-behavior:smooth; }
 
-/* ── Page ── */
-.page{padding:68px 1rem 2rem;max-width:640px;margin:0 auto}
+  /* ──────────────────────────────────────────────
+     PERFORMANCE MODE — Telegram Mini App / kuchsiz qurilmalar uchun.
+     JS body ga "perf" klassini qo'yadi (Telegram.WebApp aniqlanса
+     yoki qurilma sust bo'lsa). Bunda blur/animation o'chadi —
+     dizayn deyarli bir xil ko'rinadi, lekin GPU yuklamasi yo'qoladi.
+     ────────────────────────────────────────────── */
+  body.perf *{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  /* perf rejimda faqat og'ir GPU effektlarni o'chiramiz, animatsiyalar ishlayveradi */
+  body.perf::before, body.perf::after{ display:none !important; }
+  body.perf .top-bar, body.perf .timer-box, body.perf .progress-wrap,
+  body.perf .subject-card, body.perf .question-card, body.perf .opt,
+  body.perf .result-screen, body.perf #bottom-stats{
+    background:rgba(255,255,255,0.94) !important;
+  }
 
-/* ── Loading ── */
-.spin{
-  width:40px;height:40px;border:3.5px solid rgba(79,70,229,.15);
-  border-top-color:var(--acc);border-radius:50%;
-  animation:spin .7s linear infinite;margin:3rem auto;display:block;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.load-txt{text-align:center;font-size:.84rem;color:var(--text2);margin-top:.6rem}
-.err-card{
-  background:var(--card);border-radius:20px;padding:2rem;text-align:center;
-  border:1px solid var(--border);margin-top:1rem;box-shadow:var(--shadow2);
-}
-.err-btn{
-  display:inline-block;margin-top:1rem;padding:.7rem 1.75rem;border-radius:12px;
-  border:none;cursor:pointer;background:var(--grad);color:#fff;
-  font-weight:700;font-size:.85rem;font-family:inherit;transition:all .2s;
-}
-.err-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(79,70,229,.35)}
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    background:
+      radial-gradient(1100px 620px at 18% -8%, rgba(127,176,255,0.42), transparent 60%),
+      radial-gradient(900px 560px at 92% 8%, rgba(146,120,255,0.30), transparent 58%),
+      linear-gradient(168deg, rgba(234,241,252,0.92) 0%, rgba(221,232,251,0.92) 46%, rgba(230,236,250,0.92) 100%),
+      var(--bg-image) center/cover no-repeat fixed;
+    background-color: #e7eefb;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 26px;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
 
-/* ── Test header ── */
-.t-hdr{
-  background:var(--card);border-radius:16px;
-  padding:1rem 1.1rem;margin-bottom:.85rem;
-  border:1px solid var(--border);box-shadow:var(--shadow2);
-}
-.t-title{
-  font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;
-  margin-bottom:.5rem;line-height:1.4;
-}
-.chips{display:flex;gap:.35rem;flex-wrap:wrap}
-.ch{
-  display:inline-flex;align-items:center;gap:.2rem;
-  padding:.2rem .55rem;border-radius:99px;font-size:.65rem;font-weight:700;
-  background:rgba(79,70,229,.08);color:var(--acc);
-  border:1px solid rgba(79,70,229,.15);
-}
+  /* Ambient floating glow — light motion */
+  body::before,
+  body::after{
+    content:"";
+    position:fixed;
+    border-radius:50%;
+    filter:blur(60px);
+    z-index:0;
+    pointer-events:none;
+    opacity:.55;
+  }
+  body::before{
+    width:340px;height:340px;left:-90px;top:8%;
+    background:radial-gradient(circle, rgba(91,140,245,0.55), transparent 70%);
+    animation:floatA 16s ease-in-out infinite;
+  }
+  body::after{
+    width:300px;height:300px;right:-80px;top:52%;
+    background:radial-gradient(circle, rgba(150,110,240,0.45), transparent 70%);
+    animation:floatB 19s ease-in-out infinite;
+  }
+  @keyframes floatA{
+    0%,100%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(34px,46px) scale(1.12)}
+  }
+  @keyframes floatB{
+    0%,100%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(-40px,-36px) scale(1.08)}
+  }
 
-/* ── Progress ── */
-.prog-wrap{
-  background:rgba(79,70,229,.1);border-radius:99px;
-  height:6px;margin-bottom:.85rem;overflow:hidden;
-}
-.prog-bar{
-  height:100%;background:var(--grad);
-  border-radius:99px;transition:width .35s ease;
-}
+  /* hidden academic seal background (subtle) */
+  .top-bar, .subject-card, .question-card, .options-wrap,
+  .bottom-nav, .result-screen, #bottom-stats { position:relative; z-index:1; }
 
-/* ── Question card ── */
-.q-card{
-  background:var(--card);border-radius:18px;
-  padding:1.15rem 1.1rem;margin-bottom:.75rem;
-  border:1px solid var(--border);box-shadow:var(--shadow2);
-}
-.q-meta{
-  display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:.65rem;
-}
-.q-num{
-  font-family:'Unbounded',sans-serif;font-size:.68rem;font-weight:900;
-  color:var(--acc);background:rgba(79,70,229,.1);
-  border-radius:99px;padding:.22rem .65rem;
-}
-.q-prog{font-size:.7rem;color:var(--text3);font-weight:600}
-.q-img{
-  width:100%;border-radius:12px;margin-bottom:.85rem;
-  object-fit:contain;max-height:220px;
-  border:1px solid var(--border2);
-}
-.q-text{
-  font-size:.93rem;font-weight:700;line-height:1.55;
-  margin-bottom:.9rem;color:var(--text);
-}
+  /* page-load entrance */
+  @keyframes riseIn{
+    from{opacity:0;transform:translateY(16px)}
+    to{opacity:1;transform:translateY(0)}
+  }
 
-/* ── Options ── */
-.opts{display:flex;flex-direction:column;gap:.45rem}
-.opt{
-  display:flex;align-items:center;gap:.75rem;
-  padding:.82rem 1rem;border-radius:13px;
-  border:2px solid var(--border2);background:var(--card);
-  cursor:pointer;transition:all .22s;text-align:left;
-  font-family:inherit;font-size:.87rem;font-weight:500;
-  width:100%;color:var(--text);position:relative;overflow:hidden;
-}
-.opt::before{
-  content:'';position:absolute;inset:0;
-  background:var(--grad);opacity:0;transition:opacity .22s;
-}
-.opt:hover:not([disabled]){
-  border-color:var(--acc);transform:translateX(4px);
-  box-shadow:0 3px 12px rgba(79,70,229,.15);
-}
-.opt:hover:not([disabled])::before{opacity:.04}
-.opt.sel{
-  border-color:var(--acc);background:rgba(79,70,229,.07);
-  color:var(--acc);box-shadow:0 3px 14px rgba(79,70,229,.18);
-}
-.opt.correct{
-  border-color:var(--green)!important;
-  background:rgba(5,150,105,.08)!important;
-  color:var(--green)!important;
-}
-.opt.wrong{
-  border-color:var(--red)!important;
-  background:rgba(220,38,38,.07)!important;
-  color:var(--red)!important;
-}
-.opt[disabled]{cursor:not-allowed}
-.opt-lbl{
-  width:28px;height:28px;border-radius:8px;
-  border:2px solid currentColor;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Unbounded',sans-serif;
-  font-size:.68rem;font-weight:900;flex-shrink:0;
-  transition:all .22s;background:transparent;
-}
-.opt.sel .opt-lbl{background:var(--acc);color:#fff;border-color:var(--acc)}
-.opt.correct .opt-lbl{background:var(--green);color:#fff;border-color:var(--green)}
-.opt.wrong .opt-lbl{background:var(--red);color:#fff;border-color:var(--red)}
-.opt-txt{flex:1;line-height:1.45}
+  /* ===== HEADER ===== */
+  .top-bar {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 16px 16px 0;
+    animation:riseIn .55s var(--ease) both;
+  }
+  .prog-box {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    padding: 0 16px;
+    flex: 1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:7px;
+    box-shadow: var(--shadow-sm);
+  }
+  .prog-box::before{
+    content:"JARAYON";
+    font-size:8.5px;
+    font-weight:800;
+    letter-spacing:2.4px;
+    color:var(--ink-mute);
+  }
+  .prog-bar-track {
+    height: 8px;
+    background: rgba(120,155,225,0.22);
+    border-radius: 99px;
+    overflow: hidden;
+    position:relative;
+  }
+  .prog-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sapphire), var(--sapphire-hi));
+    border-radius: 99px;
+    transition: width 0.6s var(--ease);
+    position:relative;
+    overflow:hidden;
+  }
+  /* shimmer sweep over progress — light motion */
+  .prog-bar-fill::after{
+    content:"";
+    position:absolute;inset:0;
+    background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.65) 50%, transparent 80%);
+    transform:translateX(-100%);
+    animation:shimmer 2.4s ease-in-out infinite;
+  }
+  @keyframes shimmer{ to{ transform:translateX(100%);} }
 
-/* Text answer */
-.t-ans{
-  width:100%;padding:.85rem;border-radius:12px;
-  border:2px solid var(--border2);background:var(--card);
-  font-family:inherit;font-size:.87rem;color:var(--text);
-  outline:none;transition:border-color .2s;resize:vertical;min-height:90px;
-}
-.t-ans:focus{border-color:var(--acc)}
+  .timer-box {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+  }
+  .timer-icon { font-size: 17px; filter:drop-shadow(0 1px 2px rgba(52,97,214,.35)); }
+  .timer-text {
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--sapphire);
+    letter-spacing: .6px;
+    font-variant-numeric: tabular-nums;
+    transition: color .3s;
+  }
+  .timer-text.warning { color: var(--bad); animation: pulse 0.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:0.55; transform:scale(1.06)} }
 
-/* Explanation */
-.expl{
-  margin-top:.75rem;padding:.7rem .9rem;border-radius:11px;
-  background:rgba(79,70,229,.07);border-left:3px solid var(--acc);
-  font-size:.79rem;color:var(--text2);line-height:1.55;
-}
-[data-theme=dark] .expl{background:rgba(79,70,229,.15);color:#B0A8FF}
+  .stats-box {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    padding: 9px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content:center;
+    box-shadow: var(--shadow-sm);
+    min-width: 104px;
+  }
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-weight: 600;
+  }
+  .stat-icon { font-size: 13px; }
+  .stat-val { font-weight: 800; color: var(--ink); margin-left:auto; }
 
-/* ── Navigation buttons ── */
-.btns{
-  display:flex;gap:.5rem;align-items:stretch;
-  margin-top:.85rem;
-}
-.nbtn{
-  flex:1;padding:.78rem .75rem;border-radius:13px;
-  font-size:.84rem;font-weight:700;cursor:pointer;
-  border:none;font-family:inherit;transition:all .22s;
-  display:flex;align-items:center;justify-content:center;gap:.4rem;
-}
-.nbtn-prev{
-  background:var(--card);color:var(--text2);
-  border:1.5px solid var(--border2);flex:0 0 auto;
-  width:52px;padding:0;font-size:1.1rem;
-}
-.nbtn-prev:hover:not([disabled]){border-color:var(--acc);color:var(--acc)}
-.nbtn-prev[disabled]{opacity:.35;cursor:not-allowed}
-.nbtn-finish{
-  background:rgba(220,38,38,.08);color:var(--red);
-  border:1.5px solid rgba(220,38,38,.2);
-  flex:0 0 auto;font-size:.78rem;
-}
-.nbtn-finish:hover{background:rgba(220,38,38,.15);transform:translateY(-1px)}
-.nbtn-next{
-  background:var(--grad);color:#fff;
-  box-shadow:0 4px 14px rgba(79,70,229,.3);
-}
-.nbtn-next:hover:not([disabled]){
-  transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,70,229,.4);
-}
-.nbtn-next[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+  /* ===== SUBJECT TITLE ===== */
+  .subject-card {
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 14px 16px 0;
+    background: linear-gradient(135deg, rgba(52,97,214,0.14), rgba(127,176,255,0.10)), var(--glass-2);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-line);
+    border-radius: 20px;
+    padding: 18px 22px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    animation:riseIn .6s .06s var(--ease) both;
+    position:relative;
+    overflow:hidden;
+  }
+  .subject-card::before{
+    content:"";
+    position:absolute;left:0;top:0;width:100%;height:3px;
+    background:linear-gradient(90deg, var(--sapphire), var(--gold), var(--sapphire));
+    background-size:200% 100%;
+    animation:slideGrad 5s linear infinite;
+  }
+  @keyframes slideGrad{ to{ background-position:200% 0; } }
+  .subject-title {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.32;
+    letter-spacing:-.2px;
+  }
 
-/* Question dots nav */
-.q-dots{
-  display:flex;flex-wrap:wrap;gap:.35rem;
-  margin-bottom:.85rem;
-}
-.q-dot{
-  width:30px;height:30px;border-radius:8px;
-  border:1.5px solid var(--border2);background:var(--card);
-  font-size:.7rem;font-weight:700;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .18s;color:var(--text2);font-family:'Unbounded',sans-serif;
-}
-.q-dot:hover{border-color:var(--acc);color:var(--acc)}
-.q-dot.answered{background:rgba(79,70,229,.1);border-color:var(--acc);color:var(--acc)}
-.q-dot.active{background:var(--grad);border-color:transparent;color:#fff}
+  /* ===== QUESTION ===== */
+  .question-card {
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 14px 16px 0;
+    background: var(--glass-2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-line);
+    border-radius: 22px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    animation: cardSwap .42s var(--ease) both;
+  }
+  @keyframes cardSwap{
+    from{opacity:0; transform:translateY(14px) scale(.985)}
+    to{opacity:1; transform:translateY(0) scale(1)}
+  }
+  .q-number {
+    display:inline-block;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--sapphire);
+    letter-spacing: 2.6px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding:5px 13px;
+    border-radius:99px;
+    background:rgba(52,97,214,0.10);
+    border:1px solid rgba(52,97,214,0.18);
+  }
+  .question-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.62;
+    letter-spacing:-.1px;
+  }
 
-/* ── Result ── */
-.res-wrap{animation:fadeUp .4s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  /* ===== OPTIONS ===== */
+  .options-wrap {
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 12px 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
 
-.res-card{
-  background:var(--card);border-radius:22px;
-  padding:1.75rem 1.25rem;text-align:center;
-  border:1px solid var(--border);box-shadow:var(--shadow);
-  margin-bottom:1rem;
-}
-.sc-ring{
-  width:120px;height:120px;border-radius:50%;
-  margin:0 auto 1.1rem;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  position:relative;
-}
-.sc-ring::before{
-  content:'';position:absolute;inset:0;border-radius:50%;
-  border:5px solid transparent;
-}
-.sc-ring.pass::before{border-color:var(--green);background:rgba(5,150,105,.09)}
-.sc-ring.fail::before{border-color:var(--red);background:rgba(220,38,38,.09)}
-.sc-pct{
-  font-family:'Unbounded',sans-serif;font-size:2.1rem;font-weight:900;
-  line-height:1;
-}
-.sc-ring.pass .sc-pct{color:var(--green)}
-.sc-ring.fail .sc-pct{color:var(--red)}
-.sc-lbl{font-size:.6rem;font-weight:800;letter-spacing:.08em;margin-top:.2rem;opacity:.65}
-.res-title{
-  font-family:'Unbounded',sans-serif;font-size:.92rem;font-weight:900;
-  margin-bottom:.25rem;
-}
-.res-sub{font-size:.8rem;color:var(--text2);margin-bottom:1rem}
-.res-stats{
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:.5rem;margin-bottom:1.2rem;
-}
-.rs{
-  background:rgba(79,70,229,.07);border-radius:13px;
-  padding:.75rem .4rem;text-align:center;
-}
-.rsv{
-  font-family:'Unbounded',sans-serif;font-size:1.25rem;font-weight:900;
-  color:var(--acc);
-}
-.rsl{
-  font-size:.58rem;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-top:.15rem;
-}
-.res-btns{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:.75rem}
-.rbtn{
-  padding:.65rem 1.4rem;border-radius:11px;font-size:.82rem;
-  font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s;
-}
-.rbtn-s{background:var(--card);color:var(--text2);border:1.5px solid var(--border2)}
-.rbtn-s:hover{border-color:var(--acc);color:var(--acc)}
-.rbtn-p{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(79,70,229,.3)}
-.rbtn-p:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(79,70,229,.4)}
+  /* ── Izoh bloki — javob berilgandan keyin variantlar ostida ── */
+  .answer-explain{
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 4px 16px 0;
+    padding: 13px 16px;
+    border-radius: 14px;
+    background: rgba(91,140,245,0.10);
+    border: 1.4px solid rgba(91,140,245,0.28);
+    border-left: 4px solid var(--sapphire);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    animation: explFade .35s var(--ease) both;
+  }
+  @keyframes explFade{
+    from{opacity:0; transform:translateY(-6px)}
+    to{opacity:1; transform:translateY(0)}
+  }
+  .answer-explain-ic{ flex-shrink:0; font-size:16px; line-height:1.4; }
+  .answer-explain-tx{ flex:1; word-break:break-word; }
+  body.perf .answer-explain{ animation:none !important; }
 
-/* ── Review ── */
-.rv-hdr{
-  font-size:.88rem;font-weight:800;margin-bottom:.85rem;
-  display:flex;align-items:center;gap:.5rem;
-}
-.rv-item{
-  background:var(--card);border:1px solid var(--border2);
-  border-radius:14px;padding:1rem;margin-bottom:.6rem;text-align:left;
-  border-left:4px solid var(--border2);
-}
-.rv-item.rv-c{border-left-color:var(--green)}
-.rv-item.rv-w{border-left-color:var(--red)}
-.rv-q{font-size:.87rem;font-weight:700;margin-bottom:.55rem;line-height:1.45}
-.rv-a{
-  font-size:.78rem;padding:.32rem .7rem;border-radius:8px;
-  margin-bottom:.28rem;font-weight:600;display:inline-block;
-}
-.a-c{background:rgba(5,150,105,.1);color:var(--green)}
-.a-w{background:rgba(220,38,38,.1);color:var(--red)}
-.a-r{background:rgba(79,70,229,.09);color:var(--acc)}
+  .option {
+    background: var(--glass-2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1.6px solid var(--glass-line);
+    border-radius: 16px;
+    padding: 16px 18px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    transition: transform .18s var(--ease), background .2s, border-color .2s, box-shadow .25s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    position:relative;
+    overflow:visible;
+    animation: optIn .4s var(--ease) both;
+  }
+  /* staggered option entrance */
+  .options-wrap .option:nth-child(1){ animation-delay:.04s }
+  .options-wrap .option:nth-child(2){ animation-delay:.10s }
+  .options-wrap .option:nth-child(3){ animation-delay:.16s }
+  .options-wrap .option:nth-child(4){ animation-delay:.22s }
+  .options-wrap .option:nth-child(5){ animation-delay:.28s }
+  .options-wrap .option:nth-child(6){ animation-delay:.34s }
+  @keyframes optIn{
+    from{opacity:0; transform:translateX(-12px)}
+    to{opacity:1; transform:translateX(0)}
+  }
+  .option:hover:not(:disabled){
+    background: rgba(232,241,255,0.92);
+    border-color: rgba(52,97,214,0.55);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(52,97,214,0.24);
+  }
+  .option:active:not(:disabled){ transform:translateY(0) scale(.99); }
+
+  .option.selected {
+    background: rgba(52,97,214,0.13);
+    border-color: rgba(52,97,214,0.7);
+    color: var(--ink);
+  }
+
+  /* ✓ CORRECT — success burst animation */
+  .option.correct {
+    background: linear-gradient(135deg, rgba(15,169,104,0.18), rgba(15,169,104,0.08));
+    border-color: rgba(15,169,104,0.75);
+    color: var(--ok-deep);
+    animation: correctPop .6s var(--ease) both;
+    box-shadow: 0 0 0 rgba(15,169,104,0.5);
+  }
+  @keyframes correctPop{
+    0%{ transform:scale(1); box-shadow:0 0 0 0 rgba(15,169,104,0.5) }
+    35%{ transform:scale(1.035) }
+    70%{ box-shadow:0 0 0 12px rgba(15,169,104,0) }
+    100%{ transform:scale(1); box-shadow:0 6px 22px rgba(15,169,104,0.28) }
+  }
+  /* glowing left bar on correct */
+  .option.correct::before{
+    content:"";
+    position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:var(--ok);
+    box-shadow:0 0 12px rgba(15,169,104,.8);
+  }
+
+  /* ✗ WRONG — shake animation */
+  .option.wrong {
+    background: linear-gradient(135deg, rgba(226,59,78,0.14), rgba(226,59,78,0.06));
+    border-color: rgba(226,59,78,0.65);
+    color: var(--bad-deep);
+    animation: wrongShake .5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+  @keyframes wrongShake{
+    10%,90%{ transform:translateX(-2px) }
+    20%,80%{ transform:translateX(4px) }
+    30%,50%,70%{ transform:translateX(-7px) }
+    40%,60%{ transform:translateX(7px) }
+  }
+  .option.wrong::before{
+    content:"";
+    position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:var(--bad);
+    box-shadow:0 0 12px rgba(226,59,78,.7);
+  }
+
+  .option-radio {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(52,97,214,0.5);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s var(--ease);
+    background:rgba(255,255,255,0.5);
+  }
+  .option.correct .option-radio {
+    border-color: var(--ok); background: var(--ok);
+    box-shadow:0 0 14px rgba(15,169,104,.6);
+    animation:radioPunch .45s var(--ease) both;
+  }
+  .option.wrong .option-radio {
+    border-color: var(--bad); background: var(--bad);
+    box-shadow:0 0 14px rgba(226,59,78,.55);
+    animation:radioPunch .45s var(--ease) both;
+  }
+  .option.selected .option-radio { border-color: var(--sapphire); background: var(--sapphire); }
+  @keyframes radioPunch{
+    0%{ transform:scale(.4); opacity:0 }
+    60%{ transform:scale(1.18) }
+    100%{ transform:scale(1); opacity:1 }
+  }
+  .radio-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: white;
+    display: none;
+  }
+  .option.selected .radio-dot,
+  .option.correct .radio-dot,
+  .option.wrong .radio-dot { display: block; }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 18px 16px 0;
+    display: flex;
+    gap: 10px;
+  }
+  .nav-btn {
+    flex: 1;
+    background: var(--glass-2);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1.6px solid var(--glass-line);
+    border-radius: 15px;
+    padding: 15px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: transform .18s var(--ease), background .2s, box-shadow .25s, border-color .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: var(--shadow-sm);
+  }
+  .nav-btn:hover:not(:disabled){
+    background: rgba(232,241,255,0.95);
+    border-color: rgba(52,97,214,0.5);
+    transform: translateY(-2px);
+    box-shadow:0 8px 22px rgba(52,97,214,.2);
+  }
+  .nav-btn:active:not(:disabled){ transform:translateY(0) scale(.98); }
+  .nav-btn.finish {
+    background: linear-gradient(135deg, var(--sapphire), var(--sapphire-lo));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba(52,97,214,0.42);
+  }
+  .nav-btn.finish:hover:not(:disabled){ box-shadow: 0 10px 30px rgba(52,97,214,0.58); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow:none; }
+
+  /* ===== RESULT ===== */
+  .result-screen {
+    display: none;
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 22px 16px 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .result-card {
+    width: 100%;
+    background: var(--glass-2);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border:1px solid var(--glass-line);
+    border-radius: 26px;
+    padding: 38px 28px;
+    text-align: center;
+    box-shadow: 0 16px 50px rgba(40,78,170,0.2);
+    animation: resultRise .6s var(--ease) both;
+    position:relative;
+    overflow:hidden;
+  }
+  @keyframes resultRise{
+    from{opacity:0; transform:translateY(26px) scale(.96)}
+    to{opacity:1; transform:translateY(0) scale(1)}
+  }
+  .result-card::before{
+    content:"";
+    position:absolute;left:0;top:0;width:100%;height:4px;
+    background:linear-gradient(90deg, var(--sapphire), var(--gold), var(--ok));
+    background-size:200% 100%;
+    animation:slideGrad 4s linear infinite;
+  }
+  .result-icon {
+    font-size: 74px;
+    margin-bottom: 10px;
+    animation: trophyPop .7s var(--ease) both, floatY 3s ease-in-out 1s infinite;
+    filter:drop-shadow(0 6px 14px rgba(52,97,214,.3));
+  }
+  @keyframes trophyPop{
+    0%{ transform:scale(0) rotate(-25deg); opacity:0 }
+    60%{ transform:scale(1.2) rotate(8deg) }
+    100%{ transform:scale(1) rotate(0); opacity:1 }
+  }
+  @keyframes floatY{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .result-score {
+    font-size: 54px;
+    font-weight: 900;
+    background:linear-gradient(135deg, var(--sapphire), var(--sapphire-hi));
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    line-height: 1;
+    letter-spacing:-1px;
+  }
+  .result-label { font-size: 12px; color: var(--ink-mute); margin: 8px 0 22px; letter-spacing: 2px; font-weight:700; }
+  .result-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .r-stat {
+    background: rgba(238,245,255,0.82);
+    border:1px solid rgba(150,185,255,0.3);
+    border-radius: 15px;
+    padding: 15px 8px;
+    transition:transform .2s var(--ease);
+  }
+  .r-stat:hover{ transform:translateY(-3px); }
+  .r-stat-val { font-size: 23px; font-weight: 800; color: var(--sapphire); }
+  .r-stat-lbl { font-size: 10px; color: var(--ink-mute); margin-top: 5px; font-weight: 600; }
+  .result-msg { font-size: 15px; color: var(--ink-soft); margin-bottom: 22px; line-height: 1.55; font-weight:600; }
+  .restart-btn {
+    padding: 15px 20px;
+    background: linear-gradient(135deg, var(--sapphire), var(--sapphire-lo));
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(52,97,214,0.42);
+    transition: transform .2s var(--ease), box-shadow .25s;
+  }
+  .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(52,97,214,0.55); }
+  .restart-btn:active { transform: translateY(0) scale(.98); }
+
+  /* reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.05ms !important; }
+    body::before, body::after{ animation:none; }
+  }
+
+  /* ════ Konteyner cheti boʻylab aylanib yonuvchi yorugʻlik ════ */
+  @property --fxAngle{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
+  .fx-glow{ position:relative;
+    --fxLight:#fff;
+    --fxMid:var(--sapphire-hi);
+    --fxDeep:var(--sapphire);
+  }
+  .fx-glow::after{
+    content:"";
+    position:absolute; inset:-1.5px;
+    border-radius:inherit;
+    padding:1.5px;
+    background:conic-gradient(from var(--fxAngle),
+      transparent 0deg,
+      transparent 60deg,
+      var(--fxMid) 110deg,
+      var(--fxLight) 130deg,
+      var(--fxDeep) 150deg,
+      transparent 200deg,
+      transparent 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite:exclude;
+    animation:fxSpin 4s linear infinite;
+    pointer-events:none;
+    z-index:3;
+  }
+  @keyframes fxSpin{ to{ --fxAngle:360deg; } }
+  /* tezligi har bir konteyner uchun biroz farqli — jonliroq */
+  .subject-card.fx-glow::after{ animation-duration:5s; }
+  .question-card.fx-glow::after{ animation-duration:4.2s; }
+  .result-card.fx-glow::after{ animation-duration:4.6s; }
+  .bstats-inner.fx-glow::after{ animation-duration:3.4s; }
+
+  /* ── Variant tugmalari: funksiyasiga mos rangli yonuvchi chegara ── */
+  .option.fx-glow{ --fxMid:var(--sapphire-hi); --fxDeep:var(--sapphire); --fxLight:#eaf2ff; }
+  .option.fx-glow::after{ inset:-1.5px; padding:1.5px; animation-duration:4.5s; opacity:1; }
+  /* Toʻgʻri variant → yashil yonadi va tezlashadi */
+  .option.correct.fx-glow{ --fxMid:#5fe0a8; --fxDeep:var(--ok); --fxLight:#eafff5; }
+  .option.correct.fx-glow::after{ animation-duration:2s; opacity:1; }
+  /* Xato variant → qizil yonadi */
+  .option.wrong.fx-glow{ --fxMid:#ff8a96; --fxDeep:var(--bad); --fxLight:#fff0f1; }
+  .option.wrong.fx-glow::after{ animation-duration:2.4s; opacity:1; }
+  /* Tanlangan (hali tekshirilmagan) → sapphire kuchliroq */
+  .option.selected.fx-glow{ --fxMid:var(--sapphire-hi); --fxDeep:var(--sapphire); }
+
+  /* ── Navigatsiya tugmalari: funksiyasiga mos rang ── */
+  .nav-btn.fx-glow{ --fxMid:var(--sapphire-hi); --fxDeep:var(--sapphire); --fxLight:#eaf2ff; }
+  .nav-btn.fx-glow::after{ animation-duration:6s; opacity:.8; }
+  /* Tugatish → yashil-sapphire aksent, yorqinroq */
+  .nav-btn.finish.fx-glow{ --fxMid:#7fb0ff; --fxDeep:var(--ok); --fxLight:#fff; }
+  .nav-btn.finish.fx-glow::after{ animation-duration:3.2s; opacity:1; }
+  /* oʻchirilgan tugmada yonish koʻrinmasin */
+  .nav-btn:disabled.fx-glow::after{ opacity:0; }
+
+  /* Fallback: @property qoʻllab-quvvatlamasa, oddiy yonuvchi ramka */
+  @supports not (background: conic-gradient(from var(--fxAngle), #000, #fff)){
+    .fx-glow::after{
+      background:linear-gradient(120deg, transparent, var(--fxMid), transparent);
+      background-size:200% 100%;
+      animation:fxSweep 3s linear infinite;
+    }
+    @keyframes fxSweep{ to{ background-position:200% 0; } }
+  }
+
+
+  #scr-load{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    z-index:500;
+    background:
+      radial-gradient(900px 560px at 50% 28%, rgba(127,176,255,0.40), transparent 68%),
+      radial-gradient(700px 500px at 80% 80%, rgba(150,110,240,0.28), transparent 65%),
+      rgba(224,233,250,.96);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    flex-direction:column;gap:30px;
+  }
+  /* ── Pro orbital loader ── */
+  .loadwrap{
+    position:relative;
+    width:128px;height:128px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* tashqi aylanma yorugʻ halqa (conic) */
+  .loadwrap::before{
+    content:"";
+    position:absolute; inset:0;
+    border-radius:50%;
+    background:conic-gradient(from 0deg, transparent 0deg, var(--sapphire-hi) 90deg, var(--sapphire) 170deg, transparent 230deg, transparent 360deg);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    animation:_sp 1.6s linear infinite;
+    filter:drop-shadow(0 0 8px rgba(52,97,214,.45));
+  }
+  /* ichki teskari aylanma halqa */
+  .loadwrap::after{
+    content:"";
+    position:absolute; inset:20px;
+    border-radius:50%;
+    background:conic-gradient(from 180deg, transparent 0deg, #7c45e0 80deg, transparent 200deg, transparent 360deg);
+    -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+    mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+    animation:_spRev 2.1s linear infinite;
+    filter:drop-shadow(0 0 6px rgba(124,69,224,.4));
+  }
+  @keyframes _sp{to{transform:rotate(360deg)}}
+  @keyframes _spRev{to{transform:rotate(-360deg)}}
+  /* markazdagi pulslanuvchi emblema */
+  .load-core{
+    position:relative; z-index:2;
+    width:66px;height:66px;border-radius:50%;
+    background:linear-gradient(135deg, rgba(255,255,255,.85), rgba(234,242,255,.7));
+    border:1px solid var(--glass-line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;
+    box-shadow:0 8px 24px rgba(52,97,214,.28), inset 0 1px 2px rgba(255,255,255,.9);
+    animation:corePulse 1.8s var(--ease) infinite;
+  }
+  @keyframes corePulse{
+    0%,100%{ transform:scale(1); box-shadow:0 8px 24px rgba(52,97,214,.28), 0 0 0 0 rgba(52,97,214,.35) }
+    50%{ transform:scale(1.08); box-shadow:0 10px 30px rgba(52,97,214,.4), 0 0 0 14px rgba(52,97,214,0) }
+  }
+  /* orbital nuqta — halqa boʻylab uchadi */
+  .load-orbit{
+    position:absolute; inset:0;
+    animation:_sp 2.8s linear infinite;
+  }
+  .load-orbit span{
+    position:absolute; top:-3px; left:50%;
+    width:9px;height:9px;margin-left:-4.5px;
+    border-radius:50%;
+    background:var(--gold);
+    box-shadow:0 0 12px var(--gold), 0 0 4px #fff;
+  }
+  .load-textwrap{ display:flex;flex-direction:column;align-items:center;gap:14px; }
+  .load-txt{
+    font-size:1rem;color:var(--ink);font-weight:700;letter-spacing:1.5px;
+    text-transform:uppercase;
+  }
+  .load-txt span{
+    display:inline-block;
+    animation:letterWave 1.4s ease-in-out infinite;
+  }
+  @keyframes letterWave{
+    0%,60%,100%{ transform:translateY(0); opacity:.5 }
+    30%{ transform:translateY(-6px); opacity:1; color:var(--sapphire) }
+  }
+  /* pastki progress nuqtalar */
+  .load-dots{ display:flex;gap:7px; }
+  .load-dots i{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--sapphire);
+    opacity:.3;
+    animation:dotJump 1.2s ease-in-out infinite;
+  }
+  .load-dots i:nth-child(2){ animation-delay:.18s }
+  .load-dots i:nth-child(3){ animation-delay:.36s }
+  @keyframes dotJump{
+    0%,80%,100%{ transform:scale(1); opacity:.3 }
+    40%{ transform:scale(1.5); opacity:1 }
+  }
+
+  /* ── Pastki statistika ── */
+  #bottom-stats {
+    width: calc(100% - 32px);
+    max-width: 480px;
+    margin: 16px auto 20px;
+    animation:riseIn .5s var(--ease) both;
+  }
+  .bstats-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-line);
+    border-radius: 13px;
+    padding: 7px 8px;
+    box-shadow: var(--shadow-sm);
+  }
+  .bstat-item {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition:transform .2s var(--ease);
+  }
+  .bstat-item:hover{ transform:translateY(-1px); }
+  .bstat-icon { font-size: .82rem; }
+  .bstat-label { display:none; }
+  .bstat-val {
+    font-size: .98rem;
+    font-weight: 800;
+    color: var(--sapphire);
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    transition: color .3s;
+    line-height:1;
+  }
+  .bstat-val.correct { color: var(--ok); }
+  .bstat-val.wrong   { color: var(--bad); }
+  .bstat-val.pct     { color: #7c45e0; }
+  @keyframes statBump{ 0%{transform:scale(1)} 45%{transform:scale(1.45)} 100%{transform:scale(1)} }
+  .bstat-divider {
+    width: 1px;
+    height: 18px;
+    background: linear-gradient(180deg, transparent, rgba(52,97,214,0.28), transparent);
+    flex-shrink: 0;
+  }
+  #bottom-stats{ margin: 12px auto 16px; }
+
+  /* ── Qoʻshimcha ── */
+  #saveStatus { transition: all .3s ease; }
+  #reviewArea .rv-row:hover { background: rgba(255,255,255,.9) !important; }
+
+
+  /* ════ Telegram quiz-poll uslubidagi qoʻshimcha effektlar ════ */
+  /* Konfetti canvas — butun ekran ustida */
+  #fxConfetti{
+    position:fixed; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:600; display:none;
+  }
+  /* Toʻgʻri variant ustida sakrab chiquvchi ✓ badge */
+  .option.correct .fx-check{
+    position:absolute; right:16px; top:50%;
+    width:30px; height:30px; border-radius:50%;
+    background:var(--ok);
+    color:#fff; font-size:16px; font-weight:900;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 14px rgba(15,169,104,.55);
+    transform:translateY(-50%) scale(0);
+    animation:checkPop .5s var(--ease) .08s forwards;
+    z-index:2;
+  }
+  @keyframes checkPop{
+    0%{ transform:translateY(-50%) scale(0) rotate(-40deg); opacity:0 }
+    55%{ transform:translateY(-50%) scale(1.35) rotate(8deg); opacity:1 }
+    100%{ transform:translateY(-50%) scale(1) rotate(0) }
+  }
+  /* Toʻgʻri javobda yashil halqa "ping" — Telegram-vari */
+  @keyframes okRing{
+    0%{ box-shadow:0 0 0 0 rgba(15,169,104,.7), 0 6px 22px rgba(15,169,104,0.28) }
+    50%{ box-shadow:0 0 0 14px rgba(15,169,104,.2), 0 6px 22px rgba(15,169,104,0.28) }
+    100%{ box-shadow:0 0 0 28px rgba(15,169,104,0), 0 6px 22px rgba(15,169,104,0.28) }
+  }
+  .option.correct.fx-ring{ animation: correctPop .6s var(--ease) both, okRing .85s ease-out .05s forwards; }
+
+  /* ── CSS Confetti keyframe ── */
+  @keyframes _cfBurst{
+    0%  { transform:translate(0,0) rotate(0deg) scale(1); opacity:1; }
+    70% { opacity:.9; }
+    100%{ transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(.6); opacity:0; }
+  }
+
 </style>
+
 </head>
 <body>
+<canvas id="fxConfetti"></canvas>
 
-<!-- NAV -->
-<nav class="nav">
-  <div class="logo" onclick="goTo('index.html')">TestPro</div>
-  <div class="nav-right">
-    <div id="timer-wrap"></div>
-    <button class="ibtn" id="tbtn">🌙</button>
+<div id="scr-load">
+  <div class="loadwrap">
+    <div class="load-orbit"><span></span></div>
+    <div class="load-core">🎓</div>
   </div>
-</nav>
-
-<!-- PAGE -->
-<div class="page">
-  <!-- Loading -->
-  <div id="scr-load">
-    <span class="spin"></span>
-    <div class="load-txt">Yuklanmoqda...</div>
+  <div class="load-textwrap">
+    <div class="load-txt" id="loadTxt"></div>
+    <div class="load-dots"><i></i><i></i><i></i></div>
   </div>
+</div>
 
-  <!-- Test -->
-  <div id="scr-test" style="display:none">
-    <div class="t-hdr">
-      <div class="t-title" id="t-title"></div>
-      <div class="chips" id="t-chips"></div>
-    </div>
-    <div class="prog-wrap"><div class="prog-bar" id="pbar" style="width:0"></div></div>
-    <!-- Savol donalar -->
-    <div class="q-dots" id="q-dots"></div>
-    <!-- Savol -->
-    <div id="q-area"></div>
-    <!-- Tugmalar: ← | Tugatish | Keyingi → -->
-    <div class="btns">
-      <button class="nbtn nbtn-prev" id="prev-btn" onclick="prevQ()" title="Oldingi">←</button>
-      <button class="nbtn nbtn-finish" id="finish-btn" onclick="confirmFinish()">🏁 Tugatish</button>
-      <button class="nbtn nbtn-next" id="next-btn" onclick="nextQ()">Keyingi →</button>
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="prog-box">
+    <div class="prog-bar-track">
+      <div class="prog-bar-fill" id="progFill" style="width:0%"></div>
     </div>
   </div>
+  <div class="timer-box" id="timer-box">
+    <span class="timer-icon">⏱</span>
+    <span class="timer-text" id="timerText">01:30:00</span>
+  </div>
+  <div class="stats-box">
+    <div class="stat-row">
+      <span class="stat-icon">👤</span>
+      <span>Savol</span>
+      <span class="stat-val" id="qStatText">1 / 0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-icon">◔</span>
+      <span>Tugallangan</span>
+      <span class="stat-val" id="pctStat">0%</span>
+    </div>
+  </div>
 
-  <!-- Result -->
-  <div id="scr-result" style="display:none">
-    <div class="res-wrap">
-      <div class="res-card">
-        <div class="sc-ring" id="sc-ring">
-          <div class="sc-pct" id="sc-pct">0%</div>
-          <div class="sc-lbl" id="sc-lbl">NATIJA</div>
-        </div>
-        <div class="res-title" id="res-title"></div>
-        <div class="res-sub" id="res-sub"></div>
-        <div class="res-stats">
-          <div class="rs"><div class="rsv" id="r-c">0</div><div class="rsl">To'g'ri</div></div>
-          <div class="rs"><div class="rsv" id="r-w">0</div><div class="rsl">Noto'g'ri</div></div>
-          <div class="rs"><div class="rsv" id="r-t">0:00</div><div class="rsl">Vaqt</div></div>
-        </div>
-        <div class="res-btns">
-          <button class="rbtn rbtn-s" onclick="goTo('dashboard.html')">🏠 Dashboard</button>
-          <button class="rbtn rbtn-p" id="review-btn" onclick="toggleReview()">📋 Ko'rish</button>
-          <button class="rbtn rbtn-s" onclick="retryTest()">🔄 Qayta yechish</button>
-        </div>
-        <button class="rbtn rbtn-s" style="width:100%;margin-bottom:.5rem" onclick="goTo('history.html')">📜 Natijalar tarixi</button>
+</div>
+
+<!-- SUBJECT TITLE -->
+<div class="subject-card fx-glow">
+  <div class="subject-title" id="subjectTitle">Matematika: Asoslari Testi</div>
+</div>
+
+<!-- QUIZ AREA -->
+<div id="quizArea" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+  <div class="question-card fx-glow">
+    <div class="q-number" id="qNumber">SAVOL 01</div>
+    <div class="question-text" id="qText"></div>
+  </div>
+  <div class="options-wrap" id="optionsWrap"></div>
+  <div class="bottom-nav">
+    <button class="nav-btn fx-glow" id="prevBtn" onclick="prevQ()">← Oldingi</button>
+    <button class="nav-btn finish fx-glow" id="finishBtn" onclick="finishQuiz()">✓ Tugatish</button>
+    <button class="nav-btn fx-glow" id="nextBtn" onclick="nextQ()">Keyingi →</button>
+  </div>
+
+  <!-- PASTKI STATISTIKA -->
+  <div id="bottom-stats" style="display:none">
+    <div class="bstats-inner fx-glow">
+      <div class="bstat-item">
+        <span class="bstat-icon">🎯</span>
+        <span class="bstat-label">Urinish</span>
+        <span class="bstat-val" id="bAtt">0</span>
       </div>
-      <div id="rev-wrap" style="display:none">
-        <div class="rv-hdr">📊 Javoblar tahlili</div>
-        <div id="rev-list"></div>
+      <div class="bstat-divider"></div>
+      <div class="bstat-item">
+        <span class="bstat-icon">✅</span>
+        <span class="bstat-label">To'g'ri</span>
+        <span class="bstat-val correct" id="bCor">0</span>
       </div>
+      <div class="bstat-divider"></div>
+      <div class="bstat-item">
+        <span class="bstat-icon">❌</span>
+        <span class="bstat-label">Xato</span>
+        <span class="bstat-val wrong" id="bWrg">0</span>
+      </div>
+      <div class="bstat-divider"></div>
+      <div class="bstat-item">
+        <span class="bstat-icon">📊</span>
+        <span class="bstat-label">Foiz</span>
+        <span class="bstat-val pct" id="bPct">0%</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- RESULT SCREEN -->
+<div class="result-screen" id="resultScreen">
+  <div class="result-card fx-glow">
+    <div class="result-icon" id="resultIcon">🏆</div>
+    <div class="result-score" id="resultScore">0/10</div>
+    <div class="result-label">TO'G'RI JAVOBLAR</div>
+    <div class="result-stats">
+      <div class="r-stat">
+        <div class="r-stat-val" id="rCorrect">0</div>
+        <div class="r-stat-lbl">To'g'ri ✓</div>
+      </div>
+      <div class="r-stat">
+        <div class="r-stat-val" id="rWrong">0</div>
+        <div class="r-stat-lbl">Noto'g'ri ✗</div>
+      </div>
+      <div class="r-stat">
+        <div class="r-stat-val" id="rPct">0%</div>
+        <div class="r-stat-lbl">Foiz</div>
+      </div>
+    </div>
+    <div class="result-msg" id="resultMsg"></div>
+
+    <!-- Vaqt va qo'shimcha statistika -->
+    <div style="display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;justify-content:center">
+      <div class="r-stat" style="min-width:80px">
+        <div class="r-stat-val" id="rTime" style="font-size:1.1rem">—</div>
+        <div class="r-stat-lbl">⏱ Vaqt</div>
+      </div>
+      <div class="r-stat" style="min-width:80px">
+        <div class="r-stat-val" id="rPass" style="font-size:1.1rem">60%</div>
+        <div class="r-stat-lbl">🎯 O'tish bali</div>
+      </div>
+      <div class="r-stat" style="min-width:80px">
+        <div class="r-stat-val" id="rStatus" style="font-size:1.3rem">—</div>
+        <div class="r-stat-lbl">Holat</div>
+      </div>
+    </div>
+
+    <!-- Saqlash holati -->
+    <div id="saveStatus" style="display:none;margin:10px 0;padding:10px 16px;
+      border-radius:12px;font-size:.8rem;font-weight:600;
+      background:rgba(74,144,217,.08);border:1px solid rgba(74,144,217,.2);
+      color:rgba(44,74,122,.7)"></div>
+
+    <!-- Tugmalar -->
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+      <button class="restart-btn" onclick="restart()" 
+        style="display:flex;align-items:center;gap:6px">
+        🔄 Qayta boshlash
+      </button>
+      <button class="restart-btn" onclick="toggleReview()"
+        style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.3);
+               color:#7c3aed;display:flex;align-items:center;gap:6px"
+        id="reviewBtn">
+        📋 Tahlil ko'rish
+      </button>
+      <button class="restart-btn" onclick="goBack()"
+        style="background:rgba(74,144,217,.1);border:1.5px solid rgba(74,144,217,.25);
+               color:#2c6db5;display:flex;align-items:center;gap:6px">
+        🏠 Chiqish
+      </button>
+    </div>
+
+    <!-- Javoblar tahlili -->
+    <div id="reviewArea" style="display:none;margin-top:20px;text-align:left;width:100%">
+      <div style="font-size:.78rem;font-weight:700;color:rgba(44,74,122,.5);
+        text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
+        ♦ Javoblar tahlili
+      </div>
+      <div id="reviewList"></div>
     </div>
   </div>
 </div>
 
-<script src="js/api.js"></script>
 <script>
-/* ── Fallbacks ── */
-if(typeof normalizeQ==='undefined'){window.normalizeQ=function(arr){return(arr||[]).map(q=>{const type=q.type==='multiple_choice'?'multiple':q.type==='true_false'?'truefalse':q.type||'multiple';const text=q.text||q.question||q.q||'';const options=(q.options||[]).map(o=>String(o));let correct=0;if(typeof q.correct==='number'){correct=q.correct;}else if(typeof q.correct==='string'){const m=q.correct.match(/^([A-J])\s*[).]/i);if(m){correct=m[1].toUpperCase().charCodeAt(0)-65;}else{const idx=options.findIndex(o=>o===q.correct||o.trim()===q.correct.trim()||o.replace(/^[A-J]\s*[).]\s*/i,'').trim()===q.correct.replace(/^[A-J]\s*[).]\s*/i,'').trim());correct=idx>=0?idx:0;}}return{...q,type,text,options,correct,explanation:q.explanation||'',photo:q.photo||null,image:q.image||null,points:q.points||1};});};}
-if(typeof esc==='undefined'){window.esc=function(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;};}
-if(typeof fmtTime==='undefined'){window.fmtTime=function(s){s=s||0;return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};}
-if(typeof getSubject==='undefined'){const _S={english:{label:'English',emoji:'🇬🇧'},arabic:{label:'Arabcha',emoji:'🕌'},russian:{label:'Ruscha',emoji:'🇷🇺'},turkish:{label:'Turkcha',emoji:'🇹🇷'},uzbek:{label:"O'zbekcha",emoji:'🇺🇿'},math:{label:'Matematika',emoji:'🧮'},it:{label:'IT / CS',emoji:'💻'},science:{label:'Fanlar',emoji:'🔬'},religion:{label:'Din',emoji:'📖'},history:{label:'Tarix',emoji:'🏛️'},biology:{label:'Biologiya',emoji:'🧬'},chemistry:{label:'Kimyo',emoji:'⚗️'},physics:{label:'Fizika',emoji:'⚡'},literature:{label:'Adabiyot',emoji:'✍️'},sport:{label:'Sport',emoji:'⚽'},other:{label:'Boshqa',emoji:'📚'}};window.getSubject=function(k){if(!k)return _S.other;const low=k.toLowerCase().replace(/[\s\-_]/g,'');if(_S[low])return _S[low];const f=Object.entries(_S).find(([key])=>low.includes(key));return f?f[1]:{label:k,emoji:'📚'};};window.getIco=function(s){if(!s)return'📚';const k=(s||'').toLowerCase().replace(/[\s\-_]/g,'');const IC={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',uzbek:'🇺🇿',math:'🧮',it:'💻',science:'🔬',religion:'📖',history:'🏛️',biology:'🧬',chemistry:'⚗️',physics:'⚡',literature:'✍️',sport:'⚽',other:'📚'};return IC[k]||Object.entries(IC).find(([x])=>k.includes(x))?.[1]||'📚';};}
-if(typeof goTo==='undefined'){const _B=(()=>{const p=window.location.pathname;const i=p.lastIndexOf('/');return i>0?p.slice(0,i+1):'/'})();window.goTo=function(page){window.location.href=_B+page;};}
 
-/* ── Theme ── */
-const TH={get(){return localStorage.getItem('tp_theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')},set(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('tp_theme',t);const b=document.getElementById('tbtn');if(b)b.textContent=t==='dark'?'☀️':'🌙';},toggle(){this.set(this.get()==='dark'?'light':'dark')}};
-TH.set(TH.get());document.getElementById('tbtn').onclick=()=>TH.toggle();
-window.addEventListener('storage',e=>{if(e.key==='tp_theme'&&e.newValue)TH.set(e.newValue);});
+/* ═══════════════════════════════════════════
+   WEB TEST — quiz_graduate dizayni + Bot API
+═══════════════════════════════════════════ */
 
-const LBL=['A','B','C','D','E','F','G','H','I','J'];
-
-/* ── State ── */
-let testData=null,questions=[],answers={},curIdx=0,startTime=Date.now(),timerInt=null;
-
-function showErr(title,msg){
-  document.getElementById('scr-load').innerHTML=`<div class="err-card">
-    <div style="font-size:2.2rem;margin-bottom:.6rem">❌</div>
-    <h3 style="font-size:1rem;margin-bottom:.4rem">${esc(title)}</h3>
-    <p style="font-size:.8rem;color:var(--text2)">${esc(msg||'')}</p>
-    <button class="err-btn" onclick="history.back()">← Orqaga</button>
-  </div>`;
-}
-
-/* ── INIT ── */
-(async()=>{
-  const id=new URLSearchParams(location.search).get('id');
-  if(!id){showErr("Test ID yo'q","URL da ?id= parametri yo'q");return;}
-  try{
-    const resp=await DB.getTestWithQuestions(id);
-    testData=resp?.testData||null;
-    let qs=resp?.questions||[];
-    if(!testData||(!testData.test_id&&!testData.id)){showErr('Test topilmadi','Bu test mavjud emas');return;}
-    testData.id     =testData.id     ||testData.test_id||id;
-    testData.test_id=testData.test_id||testData.id     ||id;
-    if(testData.is_paused){showErr("Test to'xtatilgan","Bu test hozirda pauza rejimida");return;}
-
-    qs=normalizeQ(qs);
-    if(!qs.length){showErr("Savollar yo'q","Bu testda savol qo'shilmagan");return;}
-
-    /* ── SHUFFLE — savollar ham, variantlar ham ── */
-    if(testData.shuffle_questions||testData.shuffleQuestions){
-      qs=[...qs].sort(()=>Math.random()-.5);
-    }
-    /* Variantlarni aralashtirish */
-    qs=qs.map(q=>{
-      if(q.type==='text'||q.type==='open') return q;
-      const opts=[...q.options];
-      const correctText=opts[q.correct];
-      // Shuffle options
-      for(let i=opts.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [opts[i],opts[j]]=[opts[j],opts[i]];
-      }
-      // New correct index
-      const newCorrect=opts.indexOf(correctText);
-      return{...q,options:opts,correct:newCorrect};
-    });
-    questions=qs;
-
-    /* Timer */
-    const timeSec=(testData.time_limit||testData.timeLimit||0)*60;
-    if(timeSec>0){
-      let rem=timeSec;
-      const tw=document.getElementById('timer-wrap');
-      const upd=()=>{tw.innerHTML=`<div class="timer-box${rem<60?' warn':''}">${fmtTime(rem)}</div>`;};
-      upd();
-      timerInt=setInterval(()=>{rem--;upd();if(rem<=0){clearInterval(timerInt);finish();}},1000);
-    }
-
-    /* Show */
-    document.getElementById('scr-load').style.display='none';
-    document.getElementById('scr-test').style.display='block';
-    const ico=getIco(testData.category||testData.subject||'other');
-    const sub=getSubject(testData.category||testData.subject||'other');
-    document.getElementById('t-title').textContent=testData.title||'Test';
-    document.getElementById('t-chips').innerHTML=
-      `<span class="ch">${ico} ${sub.label}</span>`+
-      `<span class="ch">📝 ${questions.length} savol</span>`+
-      (timeSec?`<span class="ch">⏱ ${testData.time_limit||testData.timeLimit} daq</span>`:'')+
-      (testData.passing_score?`<span class="ch">🎯 ${testData.passing_score}%</span>`:'');
-    renderDots();
-    renderQ();
-  }catch(e){console.error(e);showErr('Xatolik',e.message);}
+/* ── Loading matnini harf-harf jonlantirish ── */
+(function(){
+  const t=document.getElementById('loadTxt');
+  if(!t)return;
+  const word='YUKLANMOQDA';
+  t.innerHTML=word.split('').map((c,i)=>`<span style="animation-delay:${i*0.08}s">${c}</span>`).join('');
 })();
 
-/* ── Dots ── */
-function renderDots(){
-  const c=document.getElementById('q-dots');
-  if(questions.length>30){c.style.display='none';return;}
-  c.innerHTML=questions.map((_,i)=>{
-    let cls='q-dot'+(answers[i]!==undefined?' answered':'')+(i===curIdx?' active':'');
-    return `<div class="${cls}" onclick="goToQ(${i})">${i+1}</div>`;
-  }).join('');
+/* ════ Konfetti effekti — CSS div, canvas yo'q, yengil va tez ════ */
+function fxConfettiBurst(){
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const COL=['#0fa968','#3461d6','#7fb0ff','#d9a341','#e23b4e','#7c45e0','#fff','#5fe0a8','#ffca28','#ff8a96'];
+  const N=55, frag=document.createDocumentFragment();
+  const ox=innerWidth/2, oy=innerHeight*0.42;
+  for(let k=0;k<N;k++){
+    const d=document.createElement('div');
+    const ang=Math.random()*360;
+    const dist=80+Math.random()*220;
+    const tx=Math.cos(ang*Math.PI/180)*dist;
+    const ty=Math.sin(ang*Math.PI/180)*dist - (120+Math.random()*160);
+    const dur=0.55+Math.random()*0.35;
+    const delay=Math.random()*0.12;
+    const isRect=Math.random()<0.6;
+    const size=(isRect?''+(5+Math.random()*6|0)+'px '+(7+Math.random()*7|0)+'px':''+(5+Math.random()*6|0)+'px');
+    d.style.cssText=
+      'position:fixed;pointer-events:none;z-index:9999;'+
+      'left:'+ox+'px;top:'+oy+'px;'+
+      (isRect
+        ? 'width:'+(5+Math.random()*6|0)+'px;height:'+(7+Math.random()*7|0)+'px;border-radius:2px;'
+        : 'width:'+(5+Math.random()*6|0)+'px;height:'+(5+Math.random()*6|0)+'px;border-radius:50%;' )+
+      'background:'+COL[Math.random()*COL.length|0]+';'+
+      'animation:_cfBurst '+dur+'s '+delay+'s cubic-bezier(.2,.8,.4,1) both;'+
+      '--tx:'+tx+'px;--ty:'+ty+'px;'+
+      '--rot:'+(Math.random()*540-270)+'deg;';
+    frag.appendChild(d);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>{
+    document.querySelectorAll('div[style*=_cfBurst]').forEach(e=>e.remove());
+    // fallback: hamma qolganlarni ham tozala
+    document.querySelectorAll('div[style*=--tx]').forEach(e=>e.remove());
+  }, 1100);
 }
 
-function goToQ(i){curIdx=i;renderQ();renderDots();}
+const LBL = ['A','B','C','D','E','F','G','H','I','J'];
+const API  = '/api/proxy';
+const P    = new URLSearchParams(location.search);
+const TID  = (P.get('id') || '').trim().toUpperCase();
+const DEMO = P.get('demo') === '1';
+const DMAX = 20;
+const UID  = P.get('uid') || '';
+const UNAME= P.get('name') || ('User'+UID);
+const UUN  = P.get('uname') || '';
 
-/* ── Render Q ── */
+let qs=[], meta=null, answers=[], cur=0;
+let t0=0, tmr=null, att=0, cor=0, finished=false;
+
+const $= id => document.getElementById(id);
+
+/* ──────────────────────────────────────────────
+   LIVE MONITOR — bot admin panelidagi "📡 Live Monitor"
+   ekranida web orqali test yechayotganlar ham ko'rinishi uchun.
+   Xatolar jim yutiladi — bu faqat kuzatuv, testni yechishga
+   hech qanday ta'sir qilmasligi kerak. */
+function _liveCall(action, extra){
+  if(!UID || DEMO) return;
+  try{
+    const payload = JSON.stringify({ uid: UID, tid: TID, ...extra });
+    if(navigator.sendBeacon && action==='end'){
+      navigator.sendBeacon(API+'?endpoint=live/end', new Blob([payload],{type:'application/json'}));
+      return;
+    }
+    fetch(API+'?endpoint=live/'+action,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:payload,keepalive:true
+    }).catch(()=>{});
+  }catch{}
+}
+window.addEventListener('beforeunload', ()=>_liveCall('end'));
+
+
+/* ──────────────────────────────────────────────
+   TELEGRAM MINI APP — aniqlash va tezkor sozlash
+   ────────────────────────────────────────────── */
+const TG = window.Telegram && window.Telegram.WebApp;
+if(TG){
+  try{
+    TG.ready();
+    TG.expand();
+    document.body.classList.add('perf');           // og'ir effektlarni o'chiramiz
+    if(TG.setHeaderColor) TG.setHeaderColor('#eaf1fc');
+    if(TG.disableVerticalSwipes) TG.disableVerticalSwipes();
+  }catch{}
+}
+/* Sust qurilma/eski browser — backdrop-filter qo'llamasa ham perf yoqamiz */
+if(!CSS.supports('backdrop-filter','blur(1px)') && !CSS.supports('-webkit-backdrop-filter','blur(1px)')){
+  document.body.classList.add('perf');
+}
+
+/* Cache — localStorage Telegram WebView'da ishonchsiz,
+   shuning uchun tezkor xotira (Map) BIRINCHI darajali cache,
+   localStorage esa faqat ikkinchi (sahifa qayta ochilganda) ishlatiladi. */
+const _mem = new Map();
+function _ck(t){return'tp_test_'+t}
+function _cs(t,d){
+  _mem.set(t,{d,ts:Date.now()});
+  try{localStorage.setItem(_ck(t),JSON.stringify({d,ts:Date.now()}))}catch{}
+}
+function _cl(t){
+  const m=_mem.get(t);
+  if(m && Date.now()-m.ts<86400000) return m.d;
+  try{
+    const r=localStorage.getItem(_ck(t));
+    if(!r)return null;
+    const{d,ts}=JSON.parse(r);
+    if(Date.now()-ts<86400000){_mem.set(t,{d,ts});return d}
+    localStorage.removeItem(_ck(t));
+    return null;
+  }catch{return null}
+}
+
+function fmt(s){s=Math.max(0,s|0);const h=(s/3600)|0,m=((s%3600)/60)|0,sc=s%60;if(h>0)return[h,m,sc].map(v=>String(v).padStart(2,'0')).join(':');return[m,sc].map(v=>String(v).padStart(2,'0')).join(':')}
+
+function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML}
+
+function norm(raw){
+  return(raw||[]).map(q=>{
+    const txt=q.text||q.question||q.q||'';
+    const opts=(q.options||[]).map(o=>String(o).replace(/^[A-J]\s*[).]\s*/i,'').trim());
+    let correct=0;
+    if(typeof q.correct==='number'){correct=q.correct}
+    else if(typeof q.correct==='string'){
+      const m=q.correct.match(/^([A-J])\s*[).]/i);
+      if(m)correct=m[1].toUpperCase().charCodeAt(0)-65;
+      else{const c=q.correct.replace(/^[A-J]\s*[).]\s*/i,'').trim();const i=opts.findIndex(o=>o===c||o.includes(c)||c.includes(o));correct=i>=0?i:0}
+    }
+    return{txt,opts,correct,expl:q.explanation||'',photo:q.photo||null,img:q.image||null};
+  }).filter(q=>q.txt&&q.opts.length>=2);
+}
+
+/* Photo */
+const _PC={};
+async function _ph(fid,el){
+  if(!fid||fid.startsWith('data:'))return;
+  const streamUrl='/api/proxy?endpoint=photo/stream&fid='+encodeURIComponent(fid);
+  _si(el,streamUrl);
+}
+function _si(el,src){el.innerHTML=`<img src="${src}" style="width:100%;max-height:200px;object-fit:contain;border-radius:14px;margin-bottom:10px;border:1px solid rgba(74,144,217,.2);display:block" onerror="this.parentElement.innerHTML=''">`}
+
+async function boot(){
+  if(!TID){showErr("URL da test ID yo'q");return}
+  try{
+    let resp=_cl(TID);
+    if(!resp){
+      const ctrl=new AbortController();
+      const tmo=setTimeout(()=>ctrl.abort(),12000);
+      let r;
+      try{
+        r=await fetch(API+'?endpoint=test/'+TID+'/full',{signal:ctrl.signal,cache:'no-store'});
+      }catch(fe){
+        clearTimeout(tmo);
+        showErr(fe.name==='AbortError'
+          ?"Internet sekin — qayta urinib ko'ring"
+          :"Tarmoq xatosi — ulanishni tekshiring");
+        return;
+      }
+      clearTimeout(tmo);
+      resp=await r.json();
+      if(!resp||resp.error){showErr('Test topilmadi: '+TID);return}
+      _cs(TID,resp);
+    }
+    meta=resp.testData||resp;
+
+    let questions=norm(resp.questions||resp.testData?.questions||meta.questions||[]);
+    if(!questions.length){showErr("Bu testda savollar yo'q");return}
+
+    // Savollar HAR DOIM aralashtiriladi (meta flag e'tiborga olinmaydi)
+    for(let i=questions.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[questions[i],questions[j]]=[questions[j],questions[i]]}
+    questions=questions.map(q=>{
+      const o=[...q.opts];const ct=o[q.correct];
+      for(let i=o.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[o[i],o[j]]=[o[j],o[i]]}
+      return{...q,opts:o,correct:o.indexOf(ct)};
+    });
+    if(DEMO&&questions.length>DMAX)questions=questions.slice(0,DMAX);
+    qs=questions;
+    answers=new Array(qs.length).fill(null);
+    t0=Date.now();
+
+    /* Subject */
+    $('subjectTitle').textContent=meta.title||TID;
+
+    /* Timer */
+    const timeSec=(meta.time_limit||0)*60;
+    const _tb=document.getElementById('timer-box');
+    if(_tb)_tb.style.display='flex';
+    if(timeSec>0){
+      // Countdown
+      let rem=timeSec;
+      const upd=()=>{
+        const tEl=$('timerText');
+        if(tEl){
+          tEl.textContent=fmt(rem);
+          tEl.style.color=rem<60?'#dc2626':'';
+        }
+      };
+      upd();
+      tmr=setInterval(()=>{rem--;upd();if(rem<=0){clearInterval(tmr);finish()}},1000);
+    } else {
+      // Countup — o'tgan vaqt
+      let elapsed=0;
+      const upd=()=>{const tEl=$('timerText');if(tEl)tEl.textContent=fmt(elapsed)};
+      upd();
+      tmr=setInterval(()=>{elapsed++;upd()},1000);
+    }
+
+    /* Show quiz */
+    $('scr-load').style.display='none';
+    $('quizArea').style.display='flex';
+    $('quizArea').style.flexDirection='column';
+    $('quizArea').style.alignItems='center';
+
+    renderQ();
+    _liveCall('start', { title: meta.title || TID, total_q: qs.length });
+  }catch(e){console.error(e);showErr('Yuklanmadi: '+e.message)}
+}
+
+function showErr(msg){
+    const _bs=document.getElementById("bottom-stats");if(_bs)_bs.style.display="block";
+  $('scr-load').innerHTML=`<div style="text-align:center;padding:2rem"><div style="font-size:2.5rem;margin-bottom:12px">⚠️</div><p style="color:rgba(44,74,122,.7);font-size:.9rem;margin-bottom:14px">${msg}</p><button onclick="history.back()" style="padding:11px 26px;border-radius:14px;background:linear-gradient(135deg,#4a90d9,#6bb0f0);border:none;color:#fff;font-family:inherit;font-weight:600;cursor:pointer">← Orqaga</button></div>`;
+}
+
+function updateHeader(){
+  const done=answers.filter(a=>a!==null).length;
+  const pct=Math.round(done/qs.length*100);
+  if($('progFill'))$('progFill').style.width=pct+'%';
+  if($('qStatText'))$('qStatText').textContent=(cur+1)+' / '+qs.length;
+  if($('pctStat'))$('pctStat').textContent=pct+'%';
+}
+
 function renderQ(){
-  const q=questions[curIdx];
-  document.getElementById('pbar').style.width=((curIdx+1)/questions.length*100)+'%';
-  document.getElementById('prev-btn').disabled=curIdx===0;
-  const isLast=curIdx===questions.length-1;
-  const nb=document.getElementById('next-btn');
-  nb.textContent=isLast?'✅ Tugatish':'Keyingi →';
-  nb.disabled=false;
+  const q=qs[cur];
+  _liveCall('update', { idx: cur });
 
-  const ans=answers[curIdx];
-  const answered=ans!==undefined;
-  const showFeedback=answered&&testData.show_result!==false&&testData.showResult!==false;
+
+  /* Savol matni */
+  $('qNumber').textContent='SAVOL '+String(cur+1).padStart(2,'0');
+  $('qText').textContent=q.txt;
 
   /* Rasm */
-  const photoId=q.photo||q.image||null;
-  const imgHtml=photoId&&!photoId.startsWith('data:')?''  // TG file_id — saytda ko'rsatib bo'lmaydi (bot ko'rsatadi)
-               :q.image&&q.image.startsWith('data:')?`<img class="q-img" src="${q.image}" alt="rasm">`
-               :'';
+  let imgW=$('_imgw');
+  if(!imgW){imgW=document.createElement('div');imgW.id='_imgw';const qc=document.querySelector('.question-card');if(qc)qc.insertBefore(imgW,$('qText'));}
+  imgW.innerHTML='';
+  if(q.img&&q.img.startsWith('data:')){_si(imgW,q.img)}
+  else if(q.photo){_ph(q.photo,imgW)}
 
-  let body='';
-  if(q.type==='text'||q.type==='open'){
-    body=`<textarea class="t-ans" id="ta" rows="3" placeholder="Javobingizni yozing...">${esc(typeof ans==='string'?ans:'')}</textarea>`;
-    if(showFeedback&&q.explanation)body+=`<div class="expl">💡 ${esc(q.explanation)}</div>`;
-  }else{
-    body='<div class="opts">'+(q.options||[]).map((o,i)=>{
-      const rawTxt=String(o).replace(/^[A-J]\s*[).]\s*/i,'').trim();
-      let cls='opt',dis='';
-      if(showFeedback){
-        if(i===q.correct)cls+=' correct';
-        else if(i===ans&&i!==q.correct)cls+=' wrong';
-        dis='disabled';
-      }else if(ans===i){cls+=' sel';}
-      return `<button class="${cls}" onclick="selOpt(${i})" ${dis}>
-        <span class="opt-lbl">${LBL[i]||i}</span>
-        <span class="opt-txt">${esc(rawTxt)}</span>
-      </button>`;
-    }).join('')+'</div>';
-    if(showFeedback&&q.explanation)body+=`<div class="expl">💡 ${esc(q.explanation)}</div>`;
+  /* Nav */
+  $('prevBtn').disabled=cur===0;
+  $('nextBtn').disabled=cur===qs.length-1;
+  $('nextBtn').textContent=cur===qs.length-1?'✅ Yakunlash':'Keyingi →';
+
+  /* Options */
+  const ans=answers[cur];
+  const done=ans!==null;
+  $('optionsWrap').innerHTML=q.opts.map((o,i)=>{
+    let cls='option fx-glow';
+    if(done){if(i===q.correct)cls+=' correct';else if(i===ans)cls+=' wrong';}
+    else if(ans===i)cls+=' selected';
+    const dis=done?'disabled':'';
+    const _chk = (done && i===q.correct) ? '<span class="fx-check">\u2713</span>' : '';
+    return`<button class="${cls}" onclick="pick(${i})" ${dis}>
+      <span class="option-radio"><span class="radio-dot"></span></span>
+      ${LBL[i]}) ${esc(o)}${_chk}
+    </button>`;
+  }).join('');
+
+  /* Izoh — javob berilgandan keyin variantlar ostida ko'rinadi */
+  let explW=$('_explw');
+  if(!explW){
+    explW=document.createElement('div');
+    explW.id='_explw';
+    $('optionsWrap').insertAdjacentElement('afterend', explW);
+  }
+  if(done && q.expl){
+    explW.className='answer-explain';
+    explW.innerHTML='<span class="answer-explain-ic">💡</span><span class="answer-explain-tx">'+esc(q.expl)+'</span>';
+  } else {
+    explW.innerHTML='';
+    explW.className='';
   }
 
-  document.getElementById('q-area').innerHTML=`<div class="q-card">
-    <div class="q-meta">
-      <span class="q-num">${curIdx+1}-savol</span>
-      <span class="q-prog">${curIdx+1} / ${questions.length}</span>
-    </div>
-    ${imgHtml}
-    <div class="q-text">${esc(q.text||q.question||'')}</div>
-    ${body}
-  </div>`;
+  updateHeader();
 
-  if(q.type==='text'||q.type==='open'){
-    const ta=document.getElementById('ta');
-    if(ta)ta.oninput=()=>{answers[curIdx]=ta.value;};
+  /* Pastki statistika yangilash + ko'rsatish (test davomida jonli) */
+  const _bsLive=document.getElementById("bottom-stats");if(_bsLive)_bsLive.style.display="block";
+  const bA=document.getElementById("bAtt");if(bA)bA.textContent=att;
+  const bC=document.getElementById("bCor");if(bC){const _p=bC.textContent;bC.textContent=cor;if(_p!==String(cor))fxBump(bC);}
+  const bW=document.getElementById("bWrg");if(bW){const _p=bW.textContent;bW.textContent=att-cor;if(_p!==String(att-cor))fxBump(bW);}
+  const bP=document.getElementById("bPct");if(bP)bP.textContent=att>0?Math.round(cor/att*100)+"%":"0%";
+}
+/* statistika raqami o'zgarganda kichik "bump" animatsiyasi */
+function fxBump(el){ el.style.animation='none'; void el.offsetWidth; el.style.animation='statBump .4s cubic-bezier(.34,1.32,.55,1)'; }
+
+function pick(i){
+  if(answers[cur]!==null)return;
+  answers[cur]=i;att++;
+  const _ok=(i===qs[cur].correct);
+  if(_ok)cor++;
+  renderQ();
+  if(_ok){
+    // Telegram quiz-poll uslubida: konfetti + toʻgʻri variant halqasi
+    fxConfettiBurst();
+    // Telegram HapticFeedback (ishonchli), fallback — vibrate
+    if(TG && TG.HapticFeedback){
+      try{ TG.HapticFeedback.notificationOccurred('success'); }catch{}
+    } else if(navigator.vibrate){ navigator.vibrate(30); }
+    const _opts=document.querySelectorAll('#optionsWrap .option.correct');
+    _opts.forEach(el=>el.classList.add('fx-ring'));
+  } else {
+    if(TG && TG.HapticFeedback){
+      try{ TG.HapticFeedback.notificationOccurred('error'); }catch{}
+    } else if(navigator.vibrate){ navigator.vibrate([15,40,15]); }
   }
 }
 
-/* ── Select ── */
-function selOpt(i){
-  if(answers[curIdx]!==undefined)return;
-  answers[curIdx]=i;
-  if(typeof Cache!=='undefined')Cache.saveAnswers(testData.test_id,Object.values(answers));
-  renderQ();renderDots();
-}
+function prevQ(){if(cur>0){cur--;renderQ()}}
+function nextQ(){if(cur<qs.length-1){cur++;renderQ()}else finish()}
 
-/* ── Nav ── */
-function prevQ(){if(curIdx>0){curIdx--;renderQ();renderDots();}}
-function nextQ(){
-  const q=questions[curIdx];
-  if(q.type==='text'||q.type==='open'){const ta=document.getElementById('ta');if(ta&&ta.value.trim())answers[curIdx]=ta.value.trim();}
-  if(curIdx<questions.length-1){curIdx++;renderQ();renderDots();}
-  else{confirmFinish();}
-}
-
-/* ── Confirm finish ── */
-function confirmFinish(){
-  const answered=Object.keys(answers).length;
-  const total=questions.length;
-  const notAnswered=total-answered;
-  if(notAnswered>0){
-    if(!confirm(`${notAnswered} ta savol javobsiz qoldi.\nShunga qaramay testni tugatmoqchimisiz?`))return;
-  }else{
-    if(!confirm('Testni tugatmoqchimisiz?'))return;
-  }
+function askFinish(){
+  const left=answers.filter(a=>a===null).length;
+  if(left>0){if(!confirm(`${left} ta savol javobsiz.\nTugatmoqchimisiz?`))return}
+  else{if(!confirm('Testni tugatmoqchimisiz?'))return}
   finish();
 }
 
-/* ── Finish ── */
 async function finish(){
-  clearInterval(timerInt);
-  const elapsed=Math.floor((Date.now()-startTime)/1000);
-  const qs=questions.filter(q=>q.type!=='text'&&q.type!=='open');
-  const tot=qs.length||1;
-  let correct=0;
-  questions.forEach((q,i)=>{if(q.type!=='text'&&q.type!=='open'&&answers[i]===q.correct)correct++;});
+  if(finished)return;finished=true;
+  clearInterval(tmr);
+  _liveCall('end');
+  const elapsed=Math.floor((Date.now()-t0)/1000);
+  const tot=qs.length;
+  const correct=qs.filter((q,i)=>answers[i]===q.correct).length;
   const pct=Math.round(correct/tot*100);
-  const passScore=testData.passing_score||testData.passScore||60;
+  const passScore=meta?.passing_score||60;
   const passed=pct>=passScore;
 
-  document.getElementById('scr-test').style.display='none';
-  document.getElementById('scr-result').style.display='block';
+  /* Result screen */
+  $('quizArea').style.display='none';
+  const _bsh=document.getElementById('bottom-stats');if(_bsh)_bsh.style.display='none';
+  $('resultScreen').style.display='flex';
+  $('resultScreen').style.flexDirection='column';
+  $('resultScreen').style.alignItems='center';
+  $('resultIcon').textContent=pct>=80?'🏆':pct>=60?'🎓':pct>=40?'📚':'💪';
+  $('resultScore').textContent=correct+'/'+tot;
+  $('rCorrect').textContent=correct;
+  $('rWrong').textContent=tot-correct;
+  $('rPct').textContent=pct+'%';
+  // Yangi IDlar
+  const rTime=document.getElementById('rTime');
+  if(rTime)rTime.textContent=fmt(elapsed);
+  const rPass=document.getElementById('rPass');
+  if(rPass)rPass.textContent=passScore+'%';
+  const rStatus=document.getElementById('rStatus');
+  if(rStatus)rStatus.textContent=passed?'✅':'❌';
+  $('resultMsg').textContent=passed
+    ?`🌟 Tabriklaymiz! ${pct}% — O'tdingiz!`
+    :`💪 ${pct}% — Yana urinib ko'ring!`;
 
-  const ring=document.getElementById('sc-ring');
-  ring.className='sc-ring '+(passed?'pass':'fail');
-  document.getElementById('sc-pct').textContent=pct+'%';
-  document.getElementById('sc-lbl').textContent=passed?"O'TDINGIZ":'MUVAFFAQIYATSIZ';
-  document.getElementById('res-title').textContent=testData.title||'Test';
-  document.getElementById('res-sub').textContent=passed?'🎉 Tabriklaymiz! Ajoyib natija!':'💪 Yana bir urinib ko\'ring!';
-  document.getElementById('r-c').textContent=correct;
-  document.getElementById('r-w').textContent=tot-correct;
-  document.getElementById('r-t').textContent=fmtTime(elapsed);
-
-  const userAnswersArr=questions.map((_,i)=>answers[i]!==undefined?answers[i]:-1);
-  try{
-    await DB.saveResult({
-      testId:testData.test_id||testData.id,testTitle:testData.title||'Test',
-      subject:testData.category||testData.subject||'other',
-      correct,total:tot,percentage:pct,score:pct,elapsed,
-      passing_score:passScore,passed,
-      userAnswers:userAnswersArr,detailed_results:userAnswersArr,
-    });
-    if(typeof Cache!=='undefined')Cache.saveAnswers(testData.test_id,userAnswersArr);
-  }catch(e){console.warn('saveResult:',e);}
+  /* Save */
+  if(UID&&!DEMO){
+    const si=document.getElementById('saveStatus')||document.createElement('div');
+    si.id='saveStatus';si.style.display='block';
+    si.style.cssText='padding:10px 16px;border-radius:12px;font-size:.8rem;font-weight:600;background:rgba(74,144,217,.08);border:1px solid rgba(74,144,217,.2);color:rgba(44,74,122,.7);margin:10px 0';
+    si.textContent='⏳ Natija saqlanmoqda...';
+    try{
+      const uA=qs.map((_,i)=>answers[i]!==null?answers[i]:-1);
+      const res=await fetch(API+'?endpoint=result/save',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({testId:TID,testTitle:meta?.title||TID,subject:meta?.category||meta?.subject||'',userId:UID,user_id:UID,userName:UNAME,user_name:UNAME,userUsername:UUN,user_username:UUN,score:pct,correct,total:tot,percentage:pct,passing_score:passScore,passed,elapsed,detailed_results:uA,userAnswers:uA,completedAt:new Date().toISOString(),source:DEMO?'web_demo':'web_test'})
+      }).then(r=>r.json());
+      if(res?.ok){
+        si.style.color='#059669';si.style.background='rgba(5,150,105,.07)';si.style.borderColor='rgba(5,150,105,.3)';
+        si.textContent='✅ Natija saqlandi va statistikaga qo\'shildi!';
+        try{const ls=JSON.parse(localStorage.getItem('tp_results')||'[]');ls.unshift({testId:TID,testTitle:meta?.title||TID,userId:UID,correct,total:tot,percentage:pct,score:pct,elapsed,passing_score:passScore,passed,completedAt:new Date().toISOString()});localStorage.setItem('tp_results',JSON.stringify(ls.slice(0,200)))}catch{}
+      }else{si.style.color='#dc2626';si.textContent='⚠️ '+(res?.error||'Xato')}
+    }catch{si.style.color='#dc2626';si.textContent='⚠️ Ulanish xatosi'}
+  }else if(DEMO){
+    const sd=document.getElementById('saveStatus')||document.createElement('div');
+    sd.id='saveStatus';sd.style.display='block';
+    sd.style.cssText='padding:8px 14px;border-radius:10px;font-size:.78rem;color:rgba(180,100,20,.8);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);margin:10px 0';
+    sd.textContent='🔍 Demo rejim — natija saqlanmaydi';
+  }
 }
 
-/* ── Retry ── */
 function retryTest(){
-  const id=testData?.test_id||testData?.id||new URLSearchParams(location.search).get('id');
-  if(id&&typeof Cache!=='undefined')Cache.clearTest(id);
-  answers={};curIdx=0;startTime=Date.now();clearInterval(timerInt);
-  /* Qayta shuffle */
-  let qs=normalizeQ(questions.map(q=>({...q,options:q._origOpts||q.options,correct:q._origCorrect??q.correct})));
-  if(testData.shuffle_questions||testData.shuffleQuestions)qs=[...qs].sort(()=>Math.random()-.5);
-  qs=qs.map(q=>{
-    if(q.type==='text'||q.type==='open')return q;
-    const opts=[...q.options];const ct=opts[q.correct];
-    for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}
-    return{...q,options:opts,correct:opts.indexOf(ct)};
-  });
-  questions=qs;
-  document.getElementById('scr-result').style.display='none';
-  document.getElementById('scr-test').style.display='block';
-  const timeSec=(testData.time_limit||testData.timeLimit||0)*60;
-  if(timeSec>0){let rem=timeSec;const tw=document.getElementById('timer-wrap');const upd=()=>{tw.innerHTML=`<div class="timer-box${rem<60?' warn':''}">${fmtTime(rem)}</div>`;};upd();timerInt=setInterval(()=>{rem--;upd();if(rem<=0){clearInterval(timerInt);finish();}},1000);}
-  renderDots();renderQ();
+  finished=false;cur=0;att=0;cor=0;
+  answers=new Array(qs.length).fill(null);
+  qs=qs.map(q=>{const o=[...q.opts];const ct=o[q.correct];for(let i=o.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[o[i],o[j]]=[o[j],o[i]]}return{...q,opts:o,correct:o.indexOf(ct)}});
+  clearInterval(tmr);t0=Date.now();
+  const timeSec=(meta?.time_limit||0)*60;
+  if(timeSec>0){let rem=timeSec;const upd=()=>{if($('timerText'))$('timerText').textContent=fmt(rem)};upd();tmr=setInterval(()=>{rem--;upd();if(rem<=0){clearInterval(tmr);finish()}},1000)}
+  $('resultScreen').style.display='none';
+  $('quizArea').style.display='flex';
+  const _bsr=document.getElementById('bottom-stats');if(_bsr)_bsr.style.display='block';
+  $('quizArea').style.flexDirection='column';
+  $('quizArea').style.alignItems='center';
+  renderQ();
 }
 
-/* ── Review ── */
-let revOpen=false;
+/* HTML da prevBtn/nextBtn/finishBtn onclick ni override qilamiz */
+/* quiz_graduate original onclick lar uchun alias */
+let _revOpen=false;
 function toggleReview(){
-  revOpen=!revOpen;
-  document.getElementById('rev-wrap').style.display=revOpen?'block':'none';
-  document.getElementById('review-btn').textContent=revOpen?'▲ Yopish':'📋 Ko\'rish';
-  if(revOpen){
-    document.getElementById('rev-list').innerHTML=questions.map((q,i)=>{
-      if(q.type==='text'||q.type==='open'){
-        return `<div class="rv-item"><div class="rv-q">${i+1}. ${esc(q.text)}</div>
-          <div class="rv-a a-r">📝 Sizning: ${esc(answers[i]||'(berilmadi)')}</div>
-          ${q.explanation?`<div class="expl">💡 ${esc(q.explanation)}</div>`:''}</div>`;
-      }
+  _revOpen=!_revOpen;
+  const ra=document.getElementById('reviewArea');
+  if(ra)ra.style.display=_revOpen?'block':'none';
+  const rb=document.getElementById('reviewBtn');
+  if(rb)rb.textContent=_revOpen?'📋 Yopish':'📋 Tahlil ko\'rish';
+  if(_revOpen){
+    const LBL=['A','B','C','D','E','F','G','H','I','J'];
+    const rl=document.getElementById('reviewList');
+    if(!rl)return;
+    rl.innerHTML=qs.map((q,i)=>{
       const ua=answers[i];const ok=ua===q.correct;
-      const rawOpts=(q.options||[]).map(o=>String(o).replace(/^[A-J]\s*[).]\s*/i,'').trim());
-      return `<div class="rv-item ${ok?'rv-c':'rv-w'}">
-        <div class="rv-q">${i+1}. ${esc(q.text||q.question||'')}</div>
+      return`<div style="background:rgba(255,255,255,.7);border:1px solid rgba(74,144,217,.15);
+        border-radius:12px;padding:12px 14px;margin-bottom:8px;
+        border-left:3px solid ${ua!==undefined?(ok?'#059669':'#dc2626'):'rgba(74,144,217,.2)'}">
+        <div style="font-size:.82rem;font-weight:600;color:rgba(44,74,122,.85);margin-bottom:6px;line-height:1.4">${i+1}. ${esc(q.txt)}</div>
         ${ua!==undefined
-          ?`<div class="rv-a ${ok?'a-c':'a-w'}">${ok?'✅':'❌'} ${LBL[ua]||ua}) ${esc(rawOpts[ua]||'?')}</div>`
-          :`<div class="rv-a a-w">⏭ O'tkazildi</div>`}
-        ${!ok?`<div class="rv-a a-r">✅ To'g'ri: ${LBL[q.correct]||q.correct}) ${esc(rawOpts[q.correct]||'?')}</div>`:''}
-        ${q.explanation?`<div class="expl">💡 ${esc(q.explanation)}</div>`:''}</div>`;
+          ?`<span style="display:inline-block;padding:2px 9px;border-radius:6px;font-size:.72rem;font-weight:700;background:${ok?'rgba(5,150,105,.12)':'rgba(220,38,38,.1)'};color:${ok?'#059669':'#dc2626'}">${ok?'✅':'❌'} ${LBL[ua]||ua}) ${esc(q.opts[ua]||'')}</span>`
+          :'<span style="display:inline-block;padding:2px 9px;border-radius:6px;font-size:.72rem;font-weight:700;background:rgba(220,38,38,.08);color:#dc2626">⏭ O\'tkazildi</span>'}
+        ${!ok&&ua!==undefined?`<br><span style="display:inline-block;margin-top:4px;padding:2px 9px;border-radius:6px;font-size:.72rem;font-weight:700;background:rgba(74,144,217,.1);color:#2c6db5">✅ ${LBL[q.correct]}) ${esc(q.opts[q.correct]||'')}</span>`:''}
+        ${q.expl?`<div style="font-size:.73rem;color:rgba(44,74,122,.5);margin-top:5px">💡 ${esc(q.expl)}</div>`:''}
+      </div>`;
     }).join('');
   }
 }
+function goBack(){if(document.referrer)history.back();else location.href='/dashboard.html';}
+
+function finishQuiz(){ askFinish(); }
+function restart(){ retryTest(); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  /* ── Random background image ──────────────────────────
+     Rasmlar shu fayil bilan bir papkada: fon1.jpg ... fon10.jpg
+     Hozir 5 ta faol, keyinchalik BG_COUNT ni oshirish kifoya
+  ────────────────────────────────────────────────────── */
+  (function(){
+    const BG_COUNT = 5;
+    const BG_EXT   = 'jpg';
+    const n = Math.floor(Math.random() * BG_COUNT) + 1;
+    const url = 'fon' + n + '.' + BG_EXT;
+    document.documentElement.style.setProperty('--bg-image', 'url(' + url + ')');
+  })();
+  const pb=document.getElementById('prevBtn');if(pb)pb.onclick=()=>prevQ();
+  const nb=document.getElementById('nextBtn');if(nb)nb.onclick=()=>nextQ();
+  const fb=document.getElementById('finishBtn');if(fb)fb.onclick=()=>askFinish();
+  boot();
+});
+
 </script>
 </body>
 </html>

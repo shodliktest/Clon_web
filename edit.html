@@ -992,38 +992,11 @@ async function execSplit(){
 
     // Natija modali
     const created = r.created || [];
-
-    // Streamlit RAMga shu zahoti yuborish (agar STREAMLIT_URL mavjud bo'lsa)
-    if(created.length && typeof STREAMLIT_URL !== 'undefined' && STREAMLIT_URL){
-      try{
-        // Har bir bo'lak uchun to'liq savollar bilan Streamlit ga yuborish
-        const parts2 = created.map((cr,i)=>{
-          const p   = calcSplits()[i] || {};
-          const chunk = qs.slice((p.from||1)-1, p.to||cr.count);
-          return {
-            test_id:        cr.tid,
-            title:          cr.title,
-            question_count: cr.count,
-            questions:      chunk.map(q=>({
-              type:'multiple_choice', question:q.q, text:q.q,
-              options:q.options.map((o,oi)=>`${LBL[oi]}) ${o}`),
-              correct:`${LBL[q.correct]}) ${q.options[q.correct]||''}`,
-              explanation:q.explanation||'',
-            })),
-            category:    testMeta?.category||'',
-            visibility:  testMeta?.visibility||'public',
-            creator_id:  testMeta?.creator_id||0,
-            source:      'web_split',
-          };
-        });
-        const uid = localStorage.getItem('tp_tg_user')
-          ? JSON.parse(localStorage.getItem('tp_tg_user'))?.id || 0 : 0;
-        const stUrl = STREAMLIT_URL.replace(/\/?$/,'') +
-          '/?api=ram_split&creator_id='+uid+
-          '&parts='+encodeURIComponent(JSON.stringify(parts2));
-        fetch(stUrl).catch(()=>{});
-      } catch(_e){}
-    }
+    // Eslatma: eski versiyada bu yerda natijalarni "Streamlit RAM"ga
+    // qo'shimcha yuborish kerak edi (chunki eski tizim testlarni
+    // darhol ko'rsatmasdi). Endi backend to'g'ridan-to'g'ri Supabase'ga
+    // yozadi — barcha joyda (bot, web, Streamlit) darhol ko'rinadi,
+    // shuning uchun bu qo'shimcha qadam kerak emas edi va olib tashlandi.
 
     let html = `<div style="margin-bottom:.75rem;font-size:.82rem;color:var(--text-3)">`+
       `✂️ <b style="color:var(--text)">${created.length} ta yangi test</b> yaratildi</div>`;

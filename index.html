@@ -132,6 +132,42 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:var(
 @keyframes spin{to{transform:rotate(360deg)}}
 .emp{text-align:center;padding:2rem 1rem;color:var(--text3);font-size:.82rem}
 .err{text-align:center;padding:1.5rem;color:#ef4444;font-size:.82rem}
+
+/* ══════════════════════════════════════════════════════════
+   GLOW CARD + AUTO-CAROUSEL
+   — Aylanuvchi chiroq effekti FAQAT transform:rotate() bilan
+     ishlaydi (conic-gradient statik, faqat pseudo-element
+     kompozitor qatlamida aylanadi) — bu GPU'ga deyarli og'irlik
+     solmaydi, har freymda qayta chizish (repaint) YO'Q.
+   — Karusel esa scrollLeft orqali (JS bilan) siljiydi, CSS
+     animatsiya emas — shuning uchun layout/reflow yo'q.
+   ══════════════════════════════════════════════════════════ */
+.card{ position:relative; z-index:0; overflow:visible; }
+.card.glow{ isolation:isolate; }
+.card.glow::before{
+  content:'';
+  position:absolute;
+  inset:-8%;
+  z-index:-1;
+  background:conic-gradient(from 0deg,
+    transparent 0deg, var(--acc) 25deg, var(--acc2) 55deg, transparent 95deg, transparent 360deg);
+  animation:cardSpin 3.5s linear infinite;
+  will-change:transform;
+  border-radius:50%;
+}
+.card.glow::after{
+  content:'';
+  position:absolute; inset:0; z-index:-1;
+  background:var(--card);
+  border-radius:18px;
+  margin:2px;
+}
+@keyframes cardSpin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){ .card.glow::before{ animation:none; } }
+
+.scroll{ padding-top:6px; }
+.scroll.carousel{ scroll-behavior:smooth; }
+
 </style>
 </head>
 <body>
@@ -144,7 +180,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:var(
   </div>
   <div class="nav-r">
     <button class="ibtn" id="tbtn">🌙</button>
-    <button class="lbtn" id="auth-btn" onclick="window.open('https://t.me/Quizmarkerbot?start=webapp','_blank')">Kirish</button>
+    <button class="lbtn" id="auth-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Kirish</button>
   </div>
 </nav>
 
@@ -153,7 +189,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:var(
   <div class="cta" id="cta" style="display:none">
     <div class="cta-h">O'z testingizni yarating!</div>
     <p class="cta-p">Bir necha daqiqada professional test yarating va do'stlaringiz bilan ulashing</p>
-    <button class="cta-btn" onclick="window.open('https://t.me/Quizmarkerbot?start=webapp','_blank')">Boshlash →</button>
+    <button class="cta-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Boshlash →</button>
   </div>
 </div>
 
@@ -174,10 +210,53 @@ AuthHelpers.getCurrentUser().then(u=>{
 
 const ICON={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',math:'🧮',it:'💻',science:'🔬',religion:'📖',other:'📚'};
 
+/* ── Auto-scroll karusel: har 1 sekundda 1 ta blok o'ngdan chapga
+   siljiydi. Foydalanuvchi o'zi scroll qilsa/teginsa — 3.5s to'xtaydi,
+   keyin davom etadi. Bitta umumiy interval — ko'p taymer emas. ── */
+const Carousel = (()=>{
+  const items = new Set();
+  let timer = null;
+
+  function pause(el){ el._pausedUntil = Date.now() + 3500; }
+
+  function register(el){
+    el._pausedUntil = 0;
+    ['pointerdown','wheel','touchstart'].forEach(ev =>
+      el.addEventListener(ev, ()=>pause(el), {passive:true}));
+    el.addEventListener('scroll', ()=>{ if(!el._auto) pause(el); }, {passive:true});
+    items.add(el);
+    if(!timer) timer = setInterval(tick, 1000);
+  }
+
+  function tick(){
+    const now = Date.now();
+    for(const el of Array.from(items)){
+      if(!el.isConnected){ items.delete(el); continue; }
+      if(now < (el._pausedUntil||0)) continue;
+      const card = el.querySelector('.card');
+      if(!card) continue;
+      const gap  = parseFloat(getComputedStyle(el).columnGap || getComputedStyle(el).gap) || 12;
+      const step = card.offsetWidth + gap;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if(maxScroll <= 4) continue;
+
+      el._auto = true;
+      if(el.scrollLeft + step >= maxScroll - 2){
+        el.scrollTo({left:0, behavior:'smooth'});
+      } else {
+        el.scrollBy({left:step, behavior:'smooth'});
+      }
+      setTimeout(()=>{ el._auto=false; }, 600);
+    }
+  }
+  return { register };
+})();
+
+
 /* ── Karta qurish ── */
 function buildCard(t, icon){
   const c=document.createElement('div');
-  c.className='card';
+  c.className='card glow';
   c.onclick=()=>goTo('test.html?id='+(t.test_id||t.id));
   c.innerHTML=`
     <div class="card-icon">${icon}</div>
@@ -275,11 +354,12 @@ function renderGroups(pub){
     g.appendChild(hdr);
 
     const scroll=document.createElement('div');
-    scroll.className='scroll';
+    scroll.className='scroll carousel';
     arr.forEach(t=>scroll.appendChild(buildCard(t,icon)));
     g.appendChild(scroll);
 
     wrap.appendChild(g);
+    Carousel.register(scroll);
   });
 }
 
@@ -295,7 +375,7 @@ function renderGroups(pub){
       wrap.innerHTML=`<div class="hero">
         <div class="hero-h">TestPro ga<br/><span>xush kelibsiz!</span></div>
         <p class="hero-p">Hozircha ommaviy test mavjud emas. Birinchi bo'ling!</p>
-        <button class="hero-btn" onclick="window.open('https://t.me/Quizmarkerbot?start=webapp','_blank')">Test yaratish →</button>
+        <button class="hero-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Test yaratish →</button>
       </div>`;
       return;
     }
