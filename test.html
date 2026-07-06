@@ -1196,7 +1196,14 @@ async function boot(){
       }
       clearTimeout(tmo);
       resp=await r.json();
-      if(!resp||resp.error){showErr('Test topilmadi: '+TID);return}
+      if(!resp||resp.error){
+        // Haqiqiy xato matnini ko'rsatamiz — "Test topilmadi" bilan
+        // yashirilgan bo'lsa, asl sabab (masalan Supabase sozlanmagan)
+        // hech qachon ko'rinmay qolar edi.
+        const realErr = (resp && resp.error) ? resp.error : ('Test topilmadi: '+TID);
+        showErr(realErr + (r.status ? ' (HTTP '+r.status+')' : ''));
+        return;
+      }
       _cs(TID,resp);
     }
     meta=resp.testData||resp;
