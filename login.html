@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TestPro — Kirish</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem}
+.login-card{background:var(--bg-card);border:1px solid var(--border-2);border-radius:var(--radius-lg);
+  padding:2.5rem 2rem;width:100%;max-width:380px;text-align:center;box-shadow:var(--shadow)}
+.login-logo{font-family:'Unbounded',sans-serif;font-size:1.6rem;font-weight:900;
+  background:var(--grad-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:.4rem}
+.login-sub{font-size:.82rem;color:var(--text-3);margin-bottom:2rem;line-height:1.6}
+.login-av{width:72px;height:72px;border-radius:50%;
+  background:var(--grad-main);margin:0 auto 1rem;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;font-weight:900;color:#fff;font-family:'Unbounded',sans-serif}
+.login-name{font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:.25rem}
+.login-id{font-size:.78rem;color:var(--text-3);margin-bottom:1.5rem}
+.bot-box{background:var(--bg-2);border:1px solid var(--border-2);border-radius:var(--radius);
+  padding:1.25rem;margin-bottom:1.25rem}
+.bot-box-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:.6rem}
+.bot-box-desc{font-size:.78rem;color:var(--text-3);line-height:1.6;margin-bottom:1rem}
+.spinner{width:36px;height:36px;border:3px solid var(--border-2);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .8s linear infinite;margin:1.5rem auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status{font-size:.82rem;color:var(--text-3);margin-top:.5rem}
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="login-logo">TestPro</div>
+  <div class="login-sub">Bilimingizni sinang va o'stiring 🚀</div>
+
+  <!-- Yuklash -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="status">Tekshirilmoqda...</div>
+  </div>
+
+  <!-- Kirgan user -->
+  <div id="logged" style="display:none">
+    <div class="login-av" id="av"></div>
+    <div class="login-name" id="uname"></div>
+    <div class="login-id" id="uid-txt"></div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:.6rem" id="go-btn">
+      🚀 Davom etish
+    </button>
+    <button class="btn btn-secondary" style="width:100%" onclick="TGAuth.clear();location.reload()">
+      Chiqish
+    </button>
+  </div>
+
+  <!-- Bot orqali kirish -->
+  <div id="bot-box" style="display:none">
+    <div class="bot-box">
+      <div class="bot-box-title">📲 Telegram orqali kirish</div>
+      <div class="bot-box-desc">
+        Saytga kirish uchun botni oching.<br>
+        Bot sizni avtomatik yo'naltiradi.
+      </div>
+      <a id="bot-link" href="https://t.me/Quizmarkerbot?start=webapp" class="btn btn-primary" 
+         style="display:block;text-decoration:none">✈️ Botni ochish</a>
+    </div>
+    <a href="index.html" style="font-size:.78rem;color:var(--text-3)">← Bosh sahifaga qaytish</a>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+const _next = new URLSearchParams(location.search).get('next') || 'dashboard.html';
+
+// Theme
+const TH = {
+  get(){ return localStorage.getItem('tp_theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'); },
+  set(t){ document.documentElement.setAttribute('data-theme',t); localStorage.setItem('tp_theme',t); }
+};
+TH.set(TH.get());
+
+function showLogged(u) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('logged').style.display  = 'block';
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.name || 'Foydalanuvchi';
+  document.getElementById('av').textContent    = (name[0]||'?').toUpperCase();
+  document.getElementById('uname').textContent = name;
+  document.getElementById('uid-txt').textContent = 'ID: ' + (u.id||u.uid||'');
+  document.getElementById('go-btn').onclick = () => { window.location.href = _next; };
+}
+
+function showBotBox() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('bot-box').style.display  = 'block';
+}
+
+(async () => {
+  // 1. Telegram WebApp ichida — user ma'lumotlari to'g'ridan keladi
+  const tg = window.Telegram?.WebApp;
+  if (tg?.initDataUnsafe?.user) {
+    tg.ready(); tg.expand();
+    const u = tg.initDataUnsafe.user;
+    const userData = {
+      id: u.id, first_name: u.first_name||'', last_name: u.last_name||'',
+      username: u.username||'', name: [u.first_name,u.last_name].filter(Boolean).join(' ')||`User${u.id}`,
+    };
+    TGAuth.save(userData);
+    window.location.href = _next;
+    return;
+  }
+
+  // 2. URL da ?uid=...&auto=1 — botdan yuborilgan havola
+  const p    = new URLSearchParams(location.search);
+  const uid  = p.get('uid');
+  const auto = p.get('auto');
+  if (uid && auto === '1') {
+    const userData = {
+      id: parseInt(uid), uid: parseInt(uid),
+      first_name: p.get('name') || `User${uid}`,
+      username:   p.get('uname') || '',
+      name:       p.get('name') || `User${uid}`,
+    };
+    TGAuth.save(userData);
+    window.location.href = _next;
+    return;
+  }
+
+  // 3. LocalStorage da session bor
+  const existing = TGAuth.get();
+  if (existing) {
+    showLogged(existing);
+    return;
+  }
+
+  // 4. Hech narsa yo'q — bot linkini ko'rsat
+  showBotBox();
+})();
+</script>
+</body>
+</html>
