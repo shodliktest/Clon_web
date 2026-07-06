@@ -1,16 +1,15 @@
 /**
- * TestPro — Vercel Edge Proxy (Supabase Edition)
+ * TestPro — Vercel Edge Proxy (Supabase Edition, REST/fetch asosida)
  * ================================================================
- * ESKI ARXITEKTURA (olib tashlandi): testlar Telegram kanalidagi
- * "pinned message"ga yozilgan index fayl orqali saqlanar edi. Bot
- * Supabase'ga o'tgandan keyin bu indexni endi yangilamaydi — shu
- * sabab web doim "Test topilmadi" deb chiqarardi (bot ichida test
- * bor, lekin eski index'da yo'q).
+ * MUHIM TUZATISH: bu versiya @supabase/supabase-js kutubxonasini
+ * ISHLATMAYDI. Sabab: o'sha kutubxona ichida Realtime (WebSocket)
+ * moduli bor, u Vercel Edge Runtime'da (to'liq Node.js emas,
+ * cheklangan V8 muhit) ishlamaydi va "Error: internal error" kabi
+ * noaniq xatoga olib keladi.
  *
- * YANGI ARXITEKTURA: bot va bu web ikkalasi ham BIR XIL Supabase
- * "tests" jadvaliga to'g'ridan-to'g'ri yozadi/o'qiydi. Hech qanday
- * alohida "sinxronlash" bosqichi kerak emas — bot yaratgan test
- * darhol webda ko'rinadi, va aksincha.
+ * Shu sabab bu yerda Supabase'ning REST API'siga (PostgREST)
+ * to'g'ridan-to'g'ri fetch() orqali murojaat qilinadi — bu Edge
+ * Runtime bilan 100% mos, hech qanday tashqi kutubxona kerak emas.
  *
  * Kerakli Vercel Environment Variables (.env.example ga qarang):
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  — Supabase ulanishi
@@ -20,15 +19,14 @@
 
 export const config = { runtime: 'edge' };
 
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const BOT_TOKEN     = process.env.BOT_TOKEN || '';
 const CHANNEL_ID    = process.env.STORAGE_CHANNEL_ID || '';
 const ADMIN_IDS     = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 const ADMIN_PASS    = process.env.ADMIN_PASSWORD || 'admin123';
 const TG            = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const REST          = `${SUPABASE_URL}/rest/v1`;
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -42,19 +40,93 @@ function jsonResp(data, status = 200) {
   });
 }
 
-// ── Supabase klient (edge instance bo'ylab qayta ishlatiladi) ────
-let _sb = null;
-function sb() {
-  if (_sb) return _sb;
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  _sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  return _sb;
+// ══ Supabase REST (PostgREST) — xom fetch orqali ═══════════════
+function pgHeaders(extra = {}) {
+  return {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    ...extra,
+  };
 }
 
+async function pgFetch(path, opts = {}) {
+  const res = await fetch(`${REST}${path}`, { ...opts, headers: pgHeaders(opts.headers) });
+  if (!res.ok) {
+    let detail = '';
+    try { detail = await res.text(); } catch {}
+    throw new Error(`Supabase ${res.status}: ${detail.slice(0, 300) || res.statusText}`);
+  }
+  return res;
+}
+
+const db = {
+  /** filters: {col: value} → col=eq.value. columns: "a,b,c" yoki "*" */
+  async select(table, { columns = '*', filters = {}, limit = null, order = null } = {}) {
+    const qs = new URLSearchParams();
+    qs.set('select', columns);
+    for (const [k, v] of Object.entries(filters)) qs.set(k, `eq.${v}`);
+    if (limit) qs.set('limit', String(limit));
+    if (order) qs.set('order', order);
+    const res = await pgFetch(`/${table}?${qs.toString()}`);
+    return res.json();
+  },
+  async selectOne(table, filters, columns = '*') {
+    const rows = await db.select(table, { columns, filters, limit: 1 });
+    return rows[0] || null;
+  },
+  async insert(table, row) {
+    const res = await pgFetch(`/${table}`, {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(row),
+    });
+    const data = await res.json();
+    return data[0];
+  },
+  async update(table, filters, patch) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) qs.set(k, `eq.${v}`);
+    const res = await pgFetch(`/${table}?${qs.toString()}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(patch),
+    });
+    return res.json();
+  },
+  async upsert(table, row, onConflict) {
+    const qs = onConflict ? `?on_conflict=${onConflict}` : '';
+    const res = await pgFetch(`/${table}${qs}`, {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify(row),
+    });
+    return res.json();
+  },
+  async delete(table, filters) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) qs.set(k, `eq.${v}`);
+    await pgFetch(`/${table}?${qs.toString()}`, { method: 'DELETE' });
+    return true;
+  },
+  /** Content-Range header orqali aniq sonini o'qiydi (jadval bo'ylab HEAD so'rov) */
+  async count(table, filters = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) qs.set(k, `eq.${v}`);
+    qs.set('select', 'test_id');
+    const res = await fetch(`${REST}/${table}?${qs.toString()}`, {
+      method: 'HEAD',
+      headers: pgHeaders({ Prefer: 'count=exact' }),
+    });
+    if (!res.ok) return null;
+    const range = res.headers.get('content-range'); // masalan "0-0/123"
+    if (!range) return null;
+    const total = range.split('/')[1];
+    return total === '*' ? null : parseInt(total, 10);
+  },
+};
+
 // ══ FORMAT KONVERTATSIYA (bot <-> web savol formati) ═══════════
-// Bular Telegram'ga bog'liq emas — o'zgarishsiz qoldirildi.
 function webToBot(q) {
   const opts   = (q.options || []).map(String);
   const labels = ['A','B','C','D','E','F','G','H'];
@@ -135,10 +207,6 @@ function normMeta(t) {
   return out;
 }
 
-// ── Bitta "tests" qatorini bot bilan bir xil shaklga keltirish ──
-// (tg_db.py dagi get_test_full/save_test_full bilan bir xil sxema:
-//  test_id, title, meta(jsonb), questions(jsonb), question_count,
-//  is_active, is_paused, solve_count, avg_score)
 function rowToFull(row) {
   const full = { ...(row.meta || {}) };
   full.test_id        = row.test_id;
@@ -157,10 +225,7 @@ function rowToMeta(row) {
   return f;
 }
 
-// ── Rasm — Telegramni bepul CDN sifatida ishlatamiz (o'zgarishsiz) ──
-// Bu qism Supabase migratsiyasiga bog'liq emas: bot ham savol
-// rasmlarini file_id ko'rinishida saqlaydi (handlers/photo_upload.py),
-// shuning uchun bu yerda ham xuddi shunday file_id qaytaramiz.
+// ── Rasm — Telegramni bepul CDN sifatida ishlatamiz ─────────────
 async function tgPost(method, body) {
   const res = await fetch(`${TG}/${method}`, {
     method: 'POST',
@@ -187,10 +252,11 @@ export default async function handler(request) {
 
   const url = new URL(request.url);
   const ep  = url.searchParams.get('endpoint') || '';
-  const client = sb();
 
-  if (!client && ep !== 'config' && ep !== 'debug') {
-    return jsonResp({ error: 'Supabase sozlanmagan (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)' }, 500);
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    if (ep !== 'config' && ep !== 'debug') {
+      return jsonResp({ error: 'Supabase sozlanmagan (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)' }, 500);
+    }
   }
 
   let body = null;
@@ -198,445 +264,413 @@ export default async function handler(request) {
     try { body = await request.json(); } catch {}
   }
 
-  // ── config ────────────────────────────────────────────────────
-  if (ep === 'config') {
-    return jsonResp({ backend: 'supabase', ok: true });
-  }
-
-  // ── debug ─────────────────────────────────────────────────────
-  if (ep === 'debug') {
-    let testsCount = null, err = null;
-    if (client) {
-      const { count, error } = await client.from('tests').select('test_id', { count: 'exact', head: true });
-      testsCount = count; err = error?.message || null;
-    }
-    return jsonResp({
-      supabase_url_set: !!SUPABASE_URL,
-      supabase_key_set: !!SUPABASE_KEY,
-      bot_token_set:    !!BOT_TOKEN,
-      tests_count:      testsCount,
-      error:            err,
-    });
-  }
-
-  // ── tests/public ──────────────────────────────────────────────
-  if (ep === 'tests/public') {
-    const { data, error } = await client
-      .from('tests')
-      .select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score')
-      .eq('is_active', true)
-      .eq('is_paused', false);
-    if (error) return jsonResp({ error: error.message }, 500);
-    const metas = (data || [])
-      .map(rowToMeta)
-      .filter(t => !t.is_deleted && (t.visibility || 'public') === 'public')
-      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-    return jsonResp(metas);
-  }
-
-  // ── tests/my ──────────────────────────────────────────────────
-  if (ep === 'tests/my') {
-    const uid = url.searchParams.get('uid') || '';
-    const { data, error } = await client
-      .from('tests')
-      .select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score');
-    if (error) return jsonResp({ error: error.message }, 500);
-    const mine = (data || [])
-      .map(rowToMeta)
-      .filter(t => !t.is_deleted && String(t.creator_id) === uid);
-    return jsonResp(mine);
-  }
-
-  // ── test/{id}/full ────────────────────────────────────────────
-  if (ep.match(/^test\/[^/]+\/full$/)) {
-    const tid = ep.split('/')[1];
-    const { data, error } = await client.from('tests').select('*').eq('test_id', tid).limit(1).maybeSingle();
-    if (error) return jsonResp({ error: error.message }, 500);
-    if (!data || data.meta?.is_deleted) return jsonResp({ error: `Test topilmadi: ${tid}` }, 404);
-    const full  = rowToFull(data);
-    const webQs = (full.questions || []).map((q, i) => botToWeb(q, i));
-    const t = normMeta(full);
-    t.id = t.id || tid; t.test_id = t.test_id || tid;
-    return jsonResp({ testData: t, questions: webQs, total: webQs.length });
-  }
-
-  // ── test/{id}/meta ────────────────────────────────────────────
-  if (ep.match(/^test\/[^/]+\/meta$/)) {
-    const tid = ep.split('/')[1];
-    const { data, error } = await client
-      .from('tests').select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score')
-      .eq('test_id', tid).limit(1).maybeSingle();
-    if (error) return jsonResp({ error: error.message }, 500);
-    if (!data || data.meta?.is_deleted) return jsonResp({ error: 'Topilmadi' }, 404);
-    return jsonResp(rowToMeta(data));
-  }
-
-  // ── test/{id} (yalang'och GET) ────────────────────────────────
-  if (ep.match(/^test\/[^/]+$/) && request.method === 'GET') {
-    const tid = ep.split('/')[1];
-    const { data, error } = await client
-      .from('tests').select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score')
-      .eq('test_id', tid).limit(1).maybeSingle();
-    if (error) return jsonResp({ error: error.message }, 500);
-    if (!data || data.meta?.is_deleted) return jsonResp({ error: 'Topilmadi' }, 404);
-    return jsonResp(rowToMeta(data));
-  }
-
-  // ── test/{id}/questions (GET) ─────────────────────────────────
-  if (ep.match(/^test\/[^/]+\/questions$/) && request.method === 'GET') {
-    const tid = ep.split('/')[1];
-    const { data, error } = await client.from('tests').select('questions').eq('test_id', tid).limit(1).maybeSingle();
-    if (error || !data) return jsonResp([]);
-    return jsonResp((data.questions || []).map((q, i) => botToWeb(q, i)));
-  }
-
-  // ── test/{id}/questions (POST) — savollarni saqlash ───────────
-  if (ep.match(/^test\/[^/]+\/questions$/) && request.method === 'POST') {
-    const tid = ep.split('/')[1];
-    const { data: old, error: selErr } = await client.from('tests').select('*').eq('test_id', tid).limit(1).maybeSingle();
-    if (selErr || !old) return jsonResp({ error: 'Test topilmadi' }, 404);
-    const questions = (body?.questions || []).map(q => webToBot(q));
-    const { error } = await client.from('tests').update({
-      questions,
-      question_count: questions.length,
-    }).eq('test_id', tid);
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp({ ok: true, question_count: questions.length, old_count: (old.questions || []).length });
-  }
-
-  // ── test/{id}/update — meta yangilash ─────────────────────────
-  if (ep.match(/^test\/[^/]+\/update$/) && request.method === 'POST') {
-    const tid = ep.split('/')[1];
-    const { data: old, error: selErr } = await client.from('tests').select('meta,is_active').eq('test_id', tid).limit(1).maybeSingle();
-    if (selErr || !old) return jsonResp({ error: 'Test topilmadi' }, 404);
-
-    const allowedMeta = ['title','category','subject','difficulty','visibility','time_limit',
-                          'poll_time','passing_score','max_attempts','shuffle_questions',
-                          'show_result','ref_required','ref_count'];
-    const metaPatch = {};
-    for (const k of allowedMeta) {
-      if (body && k in body) metaPatch[k] = body[k];
-    }
-    const newMeta = { ...(old.meta || {}), ...metaPatch };
-
-    const topPatch = {};
-    if (body && 'title' in body)      topPatch.title      = body.title;
-    if (body && 'is_active' in body)  topPatch.is_active  = !!body.is_active;
-    if (body && 'is_paused' in body)  topPatch.is_paused  = !!body.is_paused;
-
-    const { error } = await client.from('tests').update({ meta: newMeta, ...topPatch }).eq('test_id', tid);
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp({ ok: true, updates: { ...metaPatch, ...topPatch } });
-  }
-
-  // ── test/{id}/delete — YARATUVCHI o'chirishi (SOFT DELETE) ────
-  // Botdagi bilan bir xil xatti-harakat: test butunlay o'chmaydi,
-  // faqat meta.is_deleted=true bo'ladi. Foydalanuvchilarga ko'rinmay
-  // qoladi, lekin admin panel ("O'chirilganlar") orqali ko'rish,
-  // tiklash yoki BUTUNLAY tozalash mumkin. Bu qasddan shunday —
-  // web orqali tasodifiy, backup'siz o'chirib yubormaslik uchun.
-  if (ep.match(/^test\/[^/]+\/delete$/) && request.method === 'POST') {
-    const tid = ep.split('/')[1];
-    const { data: old, error: selErr } = await client.from('tests').select('meta').eq('test_id', tid).limit(1).maybeSingle();
-    if (selErr || !old) return jsonResp({ error: 'Test topilmadi' }, 404);
-    const newMeta = { ...(old.meta || {}), is_deleted: true };
-    const { error } = await client.from('tests').update({ meta: newMeta }).eq('test_id', tid);
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp({ ok: true, deleted: tid, soft: true });
-  }
-
-  // ── test/{id}/split — testni bo'laklarga bo'lish ──────────────
-  // {parts:[{from,to},...]} yuborilsa — har biriga alohida test;
-  // hech narsa yuborilmasa — o'rtadan ikkiga bo'linadi (eski UI uchun).
-  if (ep.match(/^test\/[^/]+\/split$/) && request.method === 'POST') {
-    const tid = ep.split('/')[1];
-    const { data: row, error: selErr } = await client.from('tests').select('*').eq('test_id', tid).limit(1).maybeSingle();
-    if (selErr || !row) return jsonResp({ error: 'Test topilmadi' }, 404);
-    const full = rowToFull(row);
-    if (!full.questions?.length) return jsonResp({ error: 'Savollar topilmadi' }, 404);
-
-    let parts = body?.parts;
-    if (!parts || !parts.length) {
-      const mid = Math.ceil(full.questions.length / 2);
-      parts = [{ from: 1, to: mid }, { from: mid + 1, to: full.questions.length }];
+  try {
+    // ── config ──────────────────────────────────────────────────
+    if (ep === 'config') {
+      return jsonResp({ backend: 'supabase-rest', ok: true });
     }
 
-    const D = {'0':'0️⃣','1':'1️⃣','2':'2️⃣','3':'3️⃣','4':'4️⃣','5':'5️⃣','6':'6️⃣','7':'7️⃣','8':'8️⃣','9':'9️⃣'};
-    function numEmoji(n) {
-      if (n === 10) return '🔟';
-      if (n === 100) return '💯';
-      return String(n).split('').map(c => D[c] || c).join('');
+    // ── debug ───────────────────────────────────────────────────
+    if (ep === 'debug') {
+      let testsCount = null, err = null;
+      if (SUPABASE_URL && SUPABASE_KEY) {
+        try { testsCount = await db.count('tests'); }
+        catch (e) { err = String(e?.message || e); }
+      }
+      return jsonResp({
+        supabase_url_set: !!SUPABASE_URL,
+        supabase_key_set: !!SUPABASE_KEY,
+        bot_token_set:    !!BOT_TOKEN,
+        tests_count:      testsCount,
+        error:            err,
+      });
     }
 
-    const created = [];
-    for (const p of parts) {
-      const chunk = full.questions.slice(p.from - 1, p.to);
-      if (!chunk.length) continue;
-      const partTitle = `${full.title || tid} ${numEmoji(p.from)}➖${numEmoji(p.to)}`;
-      const newTid = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+    // ── tests/public ────────────────────────────────────────────
+    if (ep === 'tests/public') {
+      const data = await db.select('tests', {
+        columns: 'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score',
+        filters: { is_active: true, is_paused: false },
+      });
+      const metas = (data || [])
+        .map(rowToMeta)
+        .filter(t => !t.is_deleted && (t.visibility || 'public') === 'public')
+        .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+      return jsonResp(metas);
+    }
+
+    // ── tests/my ────────────────────────────────────────────────
+    if (ep === 'tests/my') {
+      const uid = url.searchParams.get('uid') || '';
+      const data = await db.select('tests', {
+        columns: 'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score',
+      });
+      const mine = (data || [])
+        .map(rowToMeta)
+        .filter(t => !t.is_deleted && String(t.creator_id) === uid);
+      return jsonResp(mine);
+    }
+
+    // ── test/{id}/full ──────────────────────────────────────────
+    if (ep.match(/^test\/[^/]+\/full$/)) {
+      const tid = ep.split('/')[1];
+      const data = await db.selectOne('tests', { test_id: tid });
+      if (!data || data.meta?.is_deleted) return jsonResp({ error: `Test topilmadi: ${tid}` }, 404);
+      const full  = rowToFull(data);
+      const webQs = (full.questions || []).map((q, i) => botToWeb(q, i));
+      const t = normMeta(full);
+      t.id = t.id || tid; t.test_id = t.test_id || tid;
+      return jsonResp({ testData: t, questions: webQs, total: webQs.length });
+    }
+
+    // ── test/{id}/meta ──────────────────────────────────────────
+    if (ep.match(/^test\/[^/]+\/meta$/)) {
+      const tid = ep.split('/')[1];
+      const data = await db.selectOne('tests', { test_id: tid },
+        'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score');
+      if (!data || data.meta?.is_deleted) return jsonResp({ error: 'Topilmadi' }, 404);
+      return jsonResp(rowToMeta(data));
+    }
+
+    // ── test/{id} (yalang'och GET) ──────────────────────────────
+    if (ep.match(/^test\/[^/]+$/) && request.method === 'GET') {
+      const tid = ep.split('/')[1];
+      const data = await db.selectOne('tests', { test_id: tid },
+        'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score');
+      if (!data || data.meta?.is_deleted) return jsonResp({ error: 'Topilmadi' }, 404);
+      return jsonResp(rowToMeta(data));
+    }
+
+    // ── test/{id}/questions (GET) ───────────────────────────────
+    if (ep.match(/^test\/[^/]+\/questions$/) && request.method === 'GET') {
+      const tid = ep.split('/')[1];
+      const data = await db.selectOne('tests', { test_id: tid }, 'questions');
+      if (!data) return jsonResp([]);
+      return jsonResp((data.questions || []).map((q, i) => botToWeb(q, i)));
+    }
+
+    // ── test/{id}/questions (POST) — savollarni saqlash ─────────
+    if (ep.match(/^test\/[^/]+\/questions$/) && request.method === 'POST') {
+      const tid = ep.split('/')[1];
+      const old = await db.selectOne('tests', { test_id: tid });
+      if (!old) return jsonResp({ error: 'Test topilmadi' }, 404);
+      const questions = (body?.questions || []).map(q => webToBot(q));
+      await db.update('tests', { test_id: tid }, {
+        questions,
+        question_count: questions.length,
+      });
+      return jsonResp({ ok: true, question_count: questions.length, old_count: (old.questions || []).length });
+    }
+
+    // ── test/{id}/update — meta yangilash ───────────────────────
+    if (ep.match(/^test\/[^/]+\/update$/) && request.method === 'POST') {
+      const tid = ep.split('/')[1];
+      const old = await db.selectOne('tests', { test_id: tid }, 'meta,is_active');
+      if (!old) return jsonResp({ error: 'Test topilmadi' }, 404);
+
+      const allowedMeta = ['title','category','subject','difficulty','visibility','time_limit',
+                            'poll_time','passing_score','max_attempts','shuffle_questions',
+                            'show_result','ref_required','ref_count'];
+      const metaPatch = {};
+      for (const k of allowedMeta) {
+        if (body && k in body) metaPatch[k] = body[k];
+      }
+      const newMeta = { ...(old.meta || {}), ...metaPatch };
+
+      const topPatch = {};
+      if (body && 'title' in body)      topPatch.title      = body.title;
+      if (body && 'is_active' in body)  topPatch.is_active  = !!body.is_active;
+      if (body && 'is_paused' in body)  topPatch.is_paused  = !!body.is_paused;
+
+      await db.update('tests', { test_id: tid }, { meta: newMeta, ...topPatch });
+      return jsonResp({ ok: true, updates: { ...metaPatch, ...topPatch } });
+    }
+
+    // ── test/{id}/delete — YARATUVCHI o'chirishi (SOFT DELETE) ──
+    if (ep.match(/^test\/[^/]+\/delete$/) && request.method === 'POST') {
+      const tid = ep.split('/')[1];
+      const old = await db.selectOne('tests', { test_id: tid }, 'meta');
+      if (!old) return jsonResp({ error: 'Test topilmadi' }, 404);
+      const newMeta = { ...(old.meta || {}), is_deleted: true };
+      await db.update('tests', { test_id: tid }, { meta: newMeta });
+      return jsonResp({ ok: true, deleted: tid, soft: true });
+    }
+
+    // ── test/{id}/split — testni bo'laklarga bo'lish ────────────
+    if (ep.match(/^test\/[^/]+\/split$/) && request.method === 'POST') {
+      const tid = ep.split('/')[1];
+      const row = await db.selectOne('tests', { test_id: tid });
+      if (!row) return jsonResp({ error: 'Test topilmadi' }, 404);
+      const full = rowToFull(row);
+      if (!full.questions?.length) return jsonResp({ error: 'Savollar topilmadi' }, 404);
+
+      let parts = body?.parts;
+      if (!parts || !parts.length) {
+        const mid = Math.ceil(full.questions.length / 2);
+        parts = [{ from: 1, to: mid }, { from: mid + 1, to: full.questions.length }];
+      }
+
+      const D = {'0':'0️⃣','1':'1️⃣','2':'2️⃣','3':'3️⃣','4':'4️⃣','5':'5️⃣','6':'6️⃣','7':'7️⃣','8':'8️⃣','9':'9️⃣'};
+      function numEmoji(n) {
+        if (n === 10) return '🔟';
+        if (n === 100) return '💯';
+        return String(n).split('').map(c => D[c] || c).join('');
+      }
+
+      const created = [];
+      for (const p of parts) {
+        const chunk = full.questions.slice(p.from - 1, p.to);
+        if (!chunk.length) continue;
+        const partTitle = `${full.title || tid} ${numEmoji(p.from)}➖${numEmoji(p.to)}`;
+        const newTid = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+          .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+        const newMeta = { ...(row.meta || {}) };
+        delete newMeta.is_deleted;
+        newMeta.title  = partTitle;
+        newMeta.source = 'web_split';
+
+        try {
+          await db.insert('tests', {
+            test_id:        newTid,
+            title:          partTitle,
+            meta:           newMeta,
+            questions:      chunk,
+            question_count: chunk.length,
+            is_active:      true,
+            is_paused:      false,
+            solve_count:    0,
+            avg_score:      0,
+          });
+          created.push({ tid: newTid, title: partTitle, count: chunk.length });
+        } catch { continue; }
+      }
+
+      if (!created.length) return jsonResp({ error: "Hech qaysi qism saqlanmadi" }, 500);
+      return jsonResp({ ok: true, created, parts: created });
+    }
+
+    // ── test/create ─────────────────────────────────────────────
+    if (ep === 'test/create' && request.method === 'POST') {
+      const { authorId, title, description, subject, category, visibility,
+              timeLimit, passScore, shuffleQuestions, showResult, questionCount,
+              authorName, questions, difficulty, poll_time, max_attempts } = body || {};
+      if (!title) return jsonResp({ error: 'Title kerak' }, 400);
+      const tid = Array.from(crypto.getRandomValues(new Uint8Array(4)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 
-      const newMeta = { ...(row.meta || {}) };
-      delete newMeta.is_deleted;
-      newMeta.title  = partTitle;
-      newMeta.source = 'web_split';
+      const qs = (questions || []).map(q => webToBot(q));
+      const meta = {
+        creator_id:       parseInt(authorId) || 0,
+        creator_name:     authorName || '',
+        category:         category || subject || 'Boshqa',
+        subject:          subject || category || 'Boshqa',
+        difficulty:       difficulty || 'medium',
+        visibility:       visibility || 'public',
+        time_limit:       parseInt(timeLimit) || 0,
+        poll_time:        parseInt(poll_time) || 30,
+        passing_score:    parseInt(passScore) || 60,
+        max_attempts:     parseInt(max_attempts) || 0,
+        description:      description || '',
+        shuffle_questions: !!shuffleQuestions,
+        show_result:      showResult !== false,
+        source:           'web',
+        created_at:       new Date().toISOString(),
+      };
 
-      const { error } = await client.from('tests').insert({
-        test_id:        newTid,
-        title:          partTitle,
-        meta:           newMeta,
-        questions:      chunk,
-        question_count: chunk.length,
+      await db.insert('tests', {
+        test_id:        tid,
+        title:          title || 'Nomsiz',
+        meta,
+        questions:      qs,
+        question_count: qs.length || parseInt(questionCount) || 0,
         is_active:      true,
         is_paused:      false,
         solve_count:    0,
         avg_score:      0,
       });
-      if (error) continue;
-      created.push({ tid: newTid, title: partTitle, count: chunk.length });
+      return jsonResp({ ok: true, id: tid, test_id: tid });
     }
 
-    if (!created.length) return jsonResp({ error: "Hech qaysi qism saqlanmadi" }, 500);
-    return jsonResp({ ok: true, created, parts: created });
-  }
-
-  // ── test/create ───────────────────────────────────────────────
-  if (ep === 'test/create' && request.method === 'POST') {
-    const { authorId, title, description, subject, category, visibility,
-            timeLimit, passScore, shuffleQuestions, showResult, questionCount,
-            authorName, questions, difficulty, poll_time, max_attempts } = body || {};
-    if (!title) return jsonResp({ error: 'Title kerak' }, 400);
-    const tid = Array.from(crypto.getRandomValues(new Uint8Array(4)))
-      .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-
-    const qs = (questions || []).map(q => webToBot(q));
-    const meta = {
-      creator_id:       parseInt(authorId) || 0,
-      creator_name:     authorName || '',
-      category:         category || subject || 'Boshqa',
-      subject:          subject || category || 'Boshqa',
-      difficulty:       difficulty || 'medium',
-      visibility:       visibility || 'public',
-      time_limit:       parseInt(timeLimit) || 0,
-      poll_time:        parseInt(poll_time) || 30,
-      passing_score:    parseInt(passScore) || 60,
-      max_attempts:     parseInt(max_attempts) || 0,
-      description:      description || '',
-      shuffle_questions: !!shuffleQuestions,
-      show_result:      showResult !== false,
-      source:           'web',
-      created_at:       new Date().toISOString(),
-    };
-
-    const { error } = await client.from('tests').insert({
-      test_id:        tid,
-      title:          title || 'Nomsiz',
-      meta,
-      questions:      qs,
-      question_count: qs.length || parseInt(questionCount) || 0,
-      is_active:      true,
-      is_paused:      false,
-      solve_count:    0,
-      avg_score:      0,
-    });
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp({ ok: true, id: tid, test_id: tid });
-  }
-
-  // ── user/{uid} ────────────────────────────────────────────────
-  // Eski versiya bu yerda Telegram getChat chaqirar edi — endi
-  // to'g'ridan-to'g'ri Supabase "users" jadvalidan o'qiymiz (bot
-  // shu jadvalga yozadi), bu tezroq va bot_token talab qilmaydi.
-  if (ep.startsWith('user/') && ep.split('/').length === 2) {
-    const uid = ep.split('/')[1];
-    if (!/^\d+$/.test(uid)) return jsonResp({ error: "Noto'g'ri ID" }, 400);
-    const isAdmin = ADMIN_IDS.includes(uid);
-    const { data } = await client.from('users').select('tg_id,is_blocked,data').eq('tg_id', parseInt(uid)).limit(1).maybeSingle();
-    const d = data?.data || {};
-    return jsonResp({
-      id: uid, uid,
-      name:       d.name || d.first_name || `User${uid}`,
-      username:   d.username || '',
-      is_blocked: data?.is_blocked || false,
-      is_admin:   isAdmin || d.role === 'admin',
-      role:       isAdmin || d.role === 'admin' ? 'admin' : (d.role || 'user'),
-    });
-  }
-
-  // ── admin/login ───────────────────────────────────────────────
-  if (ep === 'admin/login') {
-    if (!ADMIN_IDS.includes(String(body?.uid))) return jsonResp({ ok: false, error: 'Admin emassiz' });
-    if (body?.password !== ADMIN_PASS)          return jsonResp({ ok: false, error: "Parol noto'g'ri" });
-    return jsonResp({ ok: true });
-  }
-
-  // ── admin/tests ───────────────────────────────────────────────
-  if (ep === 'admin/tests') {
-    const { data, error } = await client
-      .from('tests').select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score');
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp((data || []).map(rowToMeta));
-  }
-
-  // ── admin/stats ───────────────────────────────────────────────
-  if (ep === 'admin/stats') {
-    const { data, error } = await client
-      .from('tests').select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score,created_at');
-    if (error) return jsonResp({ error: error.message }, 500);
-    const tests  = (data || []).map(rowToMeta).filter(t => !t.is_deleted);
-    const active = tests.filter(t => t.is_active !== false);
-    const pub    = active.filter(t => t.visibility === 'public');
-    const totalSolve = tests.reduce((s, t) => s + (t.solve_count || 0), 0);
-    const scored = tests.filter(t => t.avg_score);
-    const avgScore = scored.length ? Math.round(scored.reduce((s,t) => s+t.avg_score, 0) / scored.length) : 0;
-    const byCategory = {};
-    tests.forEach(t => {
-      const cat = t.category || t.subject || 'other';
-      if (!byCategory[cat]) byCategory[cat] = { count: 0, solves: 0, avg: [] };
-      byCategory[cat].count++; byCategory[cat].solves += t.solve_count || 0;
-      if (t.avg_score) byCategory[cat].avg.push(t.avg_score);
-    });
-    const categories = Object.entries(byCategory).map(([name, d]) => ({
-      name, count: d.count, solves: d.solves,
-      avg: d.avg.length ? Math.round(d.avg.reduce((a,b)=>a+b)/d.avg.length) : 0,
-    })).sort((a,b) => b.solves - a.solves);
-    const now   = Date.now();
-    const days7 = Array.from({length:7},(_,i) => new Date(now-i*86400000).toISOString().slice(0,10)).reverse();
-    const byDay = {}; days7.forEach(d => { byDay[d] = {created:0,solves:0}; });
-    tests.forEach(t => { const d=(t.created_at||'').slice(0,10); if(byDay[d]){byDay[d].created++;byDay[d].solves+=t.solve_count||0;} });
-    return jsonResp({
-      totalTests: tests.length, activeTests: active.length, pubTests: pub.length,
-      totalSolve, avgScore, categories,
-      topTests: [...active].sort((a,b)=>(b.solve_count||0)-(a.solve_count||0)).slice(0,5),
-      timeline: days7.map(d=>({date:d,...byDay[d]})),
-    });
-  }
-
-  // ── admin/test/{id}/pause ─────────────────────────────────────
-  if (ep.match(/^admin\/test\/.+\/pause$/)) {
-    const tid = ep.split('/')[2];
-    const { data, error: selErr } = await client.from('tests').select('is_paused').eq('test_id', tid).limit(1).maybeSingle();
-    if (selErr || !data) return jsonResp({ error: 'Topilmadi' }, 404);
-    const newVal = !data.is_paused;
-    const { error } = await client.from('tests').update({ is_paused: newVal }).eq('test_id', tid);
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp({ ok: true, is_paused: newVal });
-  }
-
-  // ── admin/test/{id}/delete — SOFT DELETE (admin ham) ──────────
-  // Haqiqiy, qaytarib bo'lmas butunlay o'chirish ATAYLAB faqat
-  // botning admin panelida (backup + tasdiqlash bilan) qoldirilgan.
-  if (ep.match(/^admin\/test\/.+\/delete$/)) {
-    const tid = ep.split('/')[2];
-    const { data, error: selErr } = await client.from('tests').select('meta').eq('test_id', tid).limit(1).maybeSingle();
-    if (selErr || !data) return jsonResp({ error: 'Topilmadi' }, 404);
-    const newMeta = { ...(data.meta || {}), is_deleted: true };
-    const { error } = await client.from('tests').update({ meta: newMeta }).eq('test_id', tid);
-    if (error) return jsonResp({ error: error.message }, 500);
-    return jsonResp({ ok: true, soft: true });
-  }
-
-  // ── result/save ───────────────────────────────────────────────
-  if (ep === 'result/save' && request.method === 'POST') {
-    const {
-      userId, user_id, testId, testTitle, subject,
-      userName, user_name, userUsername, user_username,
-      score, correct, total, percentage, passing_score, passed,
-      elapsed, detailed_results, userAnswers, completedAt, source
-    } = body || {};
-
-    const finalUid = String(userId || user_id || '0');
-    if (!finalUid || finalUid === '0' || !testId) {
-      return jsonResp({ error: 'userId va testId kerak' });
-    }
-    const pct = parseFloat(percentage ?? score ?? 0);
-    const rid = `${finalUid}_${testId}_${Date.now()}`;
-
-    const { error: insErr } = await client.from('results').insert({
-      result_id:        rid,
-      user_id:          finalUid,
-      user_name:        userName || user_name || ('User' + finalUid),
-      user_username:    userUsername || user_username || '',
-      test_id:          testId,
-      test_title:       testTitle || testId,
-      subject:          subject || '',
-      source:           source || 'web',
-      score:            parseFloat(score ?? pct ?? 0),
-      correct:          parseInt(correct || 0),
-      total:            parseInt(total || 0),
-      percentage:       pct,
-      passing_score:    parseFloat(passing_score || 60),
-      passed:           passed ?? (pct >= parseFloat(passing_score || 60)),
-      elapsed:          parseInt(elapsed || 0),
-      detailed_results: detailed_results || userAnswers || [],
-      completed_at:     completedAt || new Date().toISOString(),
-    });
-    if (insErr) return jsonResp({ error: insErr.message }, 500);
-
-    // tests.solve_count / avg_score — bot bilan BIR XIL formula
-    // (utils/db.py: avg = (avg*(sc-1) + percentage) / sc)
-    const { data: t } = await client.from('tests').select('solve_count,avg_score').eq('test_id', testId).limit(1).maybeSingle();
-    if (t) {
-      const sc  = (t.solve_count || 0) + 1;
-      const avg = Math.round((((t.avg_score || 0) * (sc - 1)) + pct) / sc * 10) / 10;
-      await client.from('tests').update({ solve_count: sc, avg_score: avg }).eq('test_id', testId);
+    // ── user/{uid} ──────────────────────────────────────────────
+    if (ep.startsWith('user/') && ep.split('/').length === 2) {
+      const uid = ep.split('/')[1];
+      if (!/^\d+$/.test(uid)) return jsonResp({ error: "Noto'g'ri ID" }, 400);
+      const isAdmin = ADMIN_IDS.includes(uid);
+      const data = await db.selectOne('users', { tg_id: uid }, 'tg_id,is_blocked,data');
+      const d = data?.data || {};
+      return jsonResp({
+        id: uid, uid,
+        name:       d.name || d.first_name || `User${uid}`,
+        username:   d.username || '',
+        is_blocked: data?.is_blocked || false,
+        is_admin:   isAdmin || d.role === 'admin',
+        role:       isAdmin || d.role === 'admin' ? 'admin' : (d.role || 'user'),
+      });
     }
 
-    return jsonResp({ ok: true, result_id: rid });
-  }
-
-  // ── results/{uid} ─────────────────────────────────────────────
-  if (ep.match(/^results\/\d+/)) {
-    const uid = ep.split('/')[1];
-    const { data, error } = await client
-      .from('results').select('*').eq('user_id', uid)
-      .order('completed_at', { ascending: false }).limit(200);
-    if (error) return jsonResp([]);
-    return jsonResp(data || []);
-  }
-
-  // ══ LIVE MONITOR — botning admin panelidagi "📡 Live Monitor"  ══
-  // bilan bir xil live_sessions jadvaliga yozadi, shunda WEB orqali
-  // test yechayotganlar ham botda ko'rinadi.
-  if (ep === 'live/start' && request.method === 'POST') {
-    const { uid, tid, title, total_q } = body || {};
-    if (!uid || !tid) return jsonResp({ ok: false });
-    await client.from('live_sessions').upsert({
-      session_id: `web_${uid}_${tid}`,
-      user_id:    String(uid),
-      test_id:    tid,
-      test_title: title || tid,
-      source:     'web',
-      idx:        0,
-      total_q:    total_q || 0,
-      started_at: new Date().toISOString(),
-      last_seen:  new Date().toISOString(),
-    }, { onConflict: 'session_id' });
-    return jsonResp({ ok: true });
-  }
-
-  if (ep === 'live/update' && request.method === 'POST') {
-    const { uid, tid, idx } = body || {};
-    if (!uid || !tid) return jsonResp({ ok: false });
-    await client.from('live_sessions').update({
-      idx: idx || 0,
-      last_seen: new Date().toISOString(),
-    }).eq('session_id', `web_${uid}_${tid}`);
-    return jsonResp({ ok: true });
-  }
-
-  if (ep === 'live/end' && request.method === 'POST') {
-    const { uid, tid } = body || {};
-    if (uid && tid) {
-      await client.from('live_sessions').delete().eq('session_id', `web_${uid}_${tid}`);
+    // ── admin/login ─────────────────────────────────────────────
+    if (ep === 'admin/login') {
+      if (!ADMIN_IDS.includes(String(body?.uid))) return jsonResp({ ok: false, error: 'Admin emassiz' });
+      if (body?.password !== ADMIN_PASS)          return jsonResp({ ok: false, error: "Parol noto'g'ri" });
+      return jsonResp({ ok: true });
     }
-    return jsonResp({ ok: true });
-  }
 
-  // ── photo/upload — rasmni TG ga yuborib file_id qaytaradi ────
-  // (Telegram bepul CDN sifatida — Supabase migratsiyasiga aloqasi yo'q)
-  if (ep === 'photo/upload' && request.method === 'POST') {
-    try {
+    // ── admin/tests ─────────────────────────────────────────────
+    if (ep === 'admin/tests') {
+      const data = await db.select('tests', {
+        columns: 'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score',
+      });
+      return jsonResp((data || []).map(rowToMeta));
+    }
+
+    // ── admin/stats ─────────────────────────────────────────────
+    if (ep === 'admin/stats') {
+      const data = await db.select('tests', {
+        columns: 'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score,created_at',
+      });
+      const tests  = (data || []).map(rowToMeta).filter(t => !t.is_deleted);
+      const active = tests.filter(t => t.is_active !== false);
+      const pub    = active.filter(t => t.visibility === 'public');
+      const totalSolve = tests.reduce((s, t) => s + (t.solve_count || 0), 0);
+      const scored = tests.filter(t => t.avg_score);
+      const avgScore = scored.length ? Math.round(scored.reduce((s,t) => s+t.avg_score, 0) / scored.length) : 0;
+      const byCategory = {};
+      tests.forEach(t => {
+        const cat = t.category || t.subject || 'other';
+        if (!byCategory[cat]) byCategory[cat] = { count: 0, solves: 0, avg: [] };
+        byCategory[cat].count++; byCategory[cat].solves += t.solve_count || 0;
+        if (t.avg_score) byCategory[cat].avg.push(t.avg_score);
+      });
+      const categories = Object.entries(byCategory).map(([name, d]) => ({
+        name, count: d.count, solves: d.solves,
+        avg: d.avg.length ? Math.round(d.avg.reduce((a,b)=>a+b)/d.avg.length) : 0,
+      })).sort((a,b) => b.solves - a.solves);
+      const now   = Date.now();
+      const days7 = Array.from({length:7},(_,i) => new Date(now-i*86400000).toISOString().slice(0,10)).reverse();
+      const byDay = {}; days7.forEach(d => { byDay[d] = {created:0,solves:0}; });
+      tests.forEach(t => { const d=(t.created_at||'').slice(0,10); if(byDay[d]){byDay[d].created++;byDay[d].solves+=t.solve_count||0;} });
+      return jsonResp({
+        totalTests: tests.length, activeTests: active.length, pubTests: pub.length,
+        totalSolve, avgScore, categories,
+        topTests: [...active].sort((a,b)=>(b.solve_count||0)-(a.solve_count||0)).slice(0,5),
+        timeline: days7.map(d=>({date:d,...byDay[d]})),
+      });
+    }
+
+    // ── admin/test/{id}/pause ───────────────────────────────────
+    if (ep.match(/^admin\/test\/.+\/pause$/)) {
+      const tid = ep.split('/')[2];
+      const data = await db.selectOne('tests', { test_id: tid }, 'is_paused');
+      if (!data) return jsonResp({ error: 'Topilmadi' }, 404);
+      const newVal = !data.is_paused;
+      await db.update('tests', { test_id: tid }, { is_paused: newVal });
+      return jsonResp({ ok: true, is_paused: newVal });
+    }
+
+    // ── admin/test/{id}/delete — SOFT DELETE ────────────────────
+    if (ep.match(/^admin\/test\/.+\/delete$/)) {
+      const tid = ep.split('/')[2];
+      const data = await db.selectOne('tests', { test_id: tid }, 'meta');
+      if (!data) return jsonResp({ error: 'Topilmadi' }, 404);
+      const newMeta = { ...(data.meta || {}), is_deleted: true };
+      await db.update('tests', { test_id: tid }, { meta: newMeta });
+      return jsonResp({ ok: true, soft: true });
+    }
+
+    // ── result/save ─────────────────────────────────────────────
+    if (ep === 'result/save' && request.method === 'POST') {
+      const {
+        userId, user_id, testId, testTitle, subject,
+        userName, user_name, userUsername, user_username,
+        score, correct, total, percentage, passing_score, passed,
+        elapsed, detailed_results, userAnswers, completedAt, source
+      } = body || {};
+
+      const finalUid = String(userId || user_id || '0');
+      if (!finalUid || finalUid === '0' || !testId) {
+        return jsonResp({ error: 'userId va testId kerak' });
+      }
+      const pct = parseFloat(percentage ?? score ?? 0);
+      const rid = `${finalUid}_${testId}_${Date.now()}`;
+
+      await db.insert('results', {
+        result_id:        rid,
+        user_id:          finalUid,
+        user_name:        userName || user_name || ('User' + finalUid),
+        user_username:    userUsername || user_username || '',
+        test_id:          testId,
+        test_title:       testTitle || testId,
+        subject:          subject || '',
+        source:           source || 'web',
+        score:            parseFloat(score ?? pct ?? 0),
+        correct:          parseInt(correct || 0),
+        total:            parseInt(total || 0),
+        percentage:       pct,
+        passing_score:    parseFloat(passing_score || 60),
+        passed:           passed ?? (pct >= parseFloat(passing_score || 60)),
+        elapsed:          parseInt(elapsed || 0),
+        detailed_results: detailed_results || userAnswers || [],
+        completed_at:     completedAt || new Date().toISOString(),
+      });
+
+      const t = await db.selectOne('tests', { test_id: testId }, 'solve_count,avg_score');
+      if (t) {
+        const sc  = (t.solve_count || 0) + 1;
+        const avg = Math.round((((t.avg_score || 0) * (sc - 1)) + pct) / sc * 10) / 10;
+        await db.update('tests', { test_id: testId }, { solve_count: sc, avg_score: avg });
+      }
+
+      return jsonResp({ ok: true, result_id: rid });
+    }
+
+    // ── results/{uid} ───────────────────────────────────────────
+    if (ep.match(/^results\/\d+/)) {
+      const uid = ep.split('/')[1];
+      const data = await db.select('results', {
+        filters: { user_id: uid }, order: 'completed_at.desc', limit: 200,
+      });
+      return jsonResp(data || []);
+    }
+
+    // ══ LIVE MONITOR ═════════════════════════════════════════════
+    if (ep === 'live/start' && request.method === 'POST') {
+      const { uid, tid, title, total_q } = body || {};
+      if (!uid || !tid) return jsonResp({ ok: false });
+      await db.upsert('live_sessions', {
+        session_id: `web_${uid}_${tid}`,
+        user_id:    String(uid),
+        test_id:    tid,
+        test_title: title || tid,
+        source:     'web',
+        idx:        0,
+        total_q:    total_q || 0,
+        started_at: new Date().toISOString(),
+        last_seen:  new Date().toISOString(),
+      }, 'session_id');
+      return jsonResp({ ok: true });
+    }
+
+    if (ep === 'live/update' && request.method === 'POST') {
+      const { uid, tid, idx } = body || {};
+      if (!uid || !tid) return jsonResp({ ok: false });
+      await db.update('live_sessions', { session_id: `web_${uid}_${tid}` }, {
+        idx: idx || 0,
+        last_seen: new Date().toISOString(),
+      });
+      return jsonResp({ ok: true });
+    }
+
+    if (ep === 'live/end' && request.method === 'POST') {
+      const { uid, tid } = body || {};
+      if (uid && tid) {
+        await db.delete('live_sessions', { session_id: `web_${uid}_${tid}` });
+      }
+      return jsonResp({ ok: true });
+    }
+
+    // ── photo/upload ────────────────────────────────────────────
+    if (ep === 'photo/upload' && request.method === 'POST') {
       const { image_b64, filename } = body || {};
       if (!image_b64) return jsonResp({ error: 'image_b64 kerak' }, 400);
       const b64data = image_b64.replace(/^data:image\/\w+;base64,/, '');
@@ -659,46 +693,48 @@ export default async function handler(request) {
       const photos  = data.result.photo || [];
       const biggest = photos[photos.length - 1];
       return jsonResp({ ok: true, file_id: biggest?.file_id || '', message_id: data.result.message_id });
-    } catch (e) {
-      return jsonResp({ error: 'photo/upload xato: ' + String(e) }, 500);
     }
-  }
 
-  // ── photo/url ─────────────────────────────────────────────────
-  if (ep === 'photo/url' && request.method === 'POST') {
-    const { file_id } = body || {};
-    if (!file_id) return jsonResp({ error: 'file_id kerak' }, 400);
-    const purl = await getPhotoUrl(file_id);
-    if (!purl) return jsonResp({ error: 'URL topilmadi' }, 404);
-    return jsonResp({ ok: true, url: purl });
-  }
+    // ── photo/url ───────────────────────────────────────────────
+    if (ep === 'photo/url' && request.method === 'POST') {
+      const { file_id } = body || {};
+      if (!file_id) return jsonResp({ error: 'file_id kerak' }, 400);
+      const purl = await getPhotoUrl(file_id);
+      if (!purl) return jsonResp({ error: 'URL topilmadi' }, 404);
+      return jsonResp({ ok: true, url: purl });
+    }
 
-  // ── photo/stream ──────────────────────────────────────────────
-  if (ep === 'photo/stream') {
-    const fid = url.searchParams.get('fid');
-    if (!fid) return new Response('fid kerak', { status: 400 });
-    const purl = await getPhotoUrl(fid);
-    if (!purl) return new Response('Topilmadi', { status: 404 });
-    return Response.redirect(purl, 302);
-  }
+    // ── photo/stream ────────────────────────────────────────────
+    if (ep === 'photo/stream') {
+      const fid = url.searchParams.get('fid');
+      if (!fid) return new Response('fid kerak', { status: 400 });
+      const purl = await getPhotoUrl(fid);
+      if (!purl) return new Response('Topilmadi', { status: 404 });
+      return Response.redirect(purl, 302);
+    }
 
-  // ── otp/verify ────────────────────────────────────────────────
-  if (ep === 'otp/verify') {
-    const code = (body?.code || '').toUpperCase().trim();
-    if (!code) return jsonResp({ ok: false, error: 'Kod kerak' });
-    const parts = code.split(':');
-    if (parts.length !== 3) return jsonResp({ ok: false, error: "Noto'g'ri format" });
-    const [testId, ts, hash] = parts;
-    if (Date.now() - parseInt(ts) > 600_000) return jsonResp({ ok: false, error: 'Muddati tugagan' });
-    const buf = new TextEncoder().encode(`${testId}:${ts}:${BOT_TOKEN.slice(-8)}`);
-    const hb  = await crypto.subtle.digest('SHA-256', buf);
-    const exp = Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,8).toUpperCase();
-    if (exp !== hash) return jsonResp({ ok: false, error: "Noto'g'ri kod" });
-    const { data } = await client
-      .from('tests').select('test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score')
-      .eq('test_id', testId).limit(1).maybeSingle();
-    return jsonResp({ ok: true, test_id: testId, meta: data ? rowToMeta(data) : {} });
-  }
+    // ── otp/verify ──────────────────────────────────────────────
+    if (ep === 'otp/verify') {
+      const code = (body?.code || '').toUpperCase().trim();
+      if (!code) return jsonResp({ ok: false, error: 'Kod kerak' });
+      const parts = code.split(':');
+      if (parts.length !== 3) return jsonResp({ ok: false, error: "Noto'g'ri format" });
+      const [testId, ts, hash] = parts;
+      if (Date.now() - parseInt(ts) > 600_000) return jsonResp({ ok: false, error: 'Muddati tugagan' });
+      const buf = new TextEncoder().encode(`${testId}:${ts}:${BOT_TOKEN.slice(-8)}`);
+      const hb  = await crypto.subtle.digest('SHA-256', buf);
+      const exp = Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,8).toUpperCase();
+      if (exp !== hash) return jsonResp({ ok: false, error: "Noto'g'ri kod" });
+      const data = await db.selectOne('tests', { test_id: testId },
+        'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score');
+      return jsonResp({ ok: true, test_id: testId, meta: data ? rowToMeta(data) : {} });
+    }
 
-  return jsonResp({ error: "Noma'lum endpoint" }, 404);
+    return jsonResp({ error: "Noma'lum endpoint" }, 404);
+
+  } catch (e) {
+    // Har qanday kutilmagan xato endi ANIQ matn bilan qaytadi —
+    // "internal error" kabi noaniq xabar YO'Q.
+    return jsonResp({ error: String(e?.message || e) }, 500);
+  }
 }
