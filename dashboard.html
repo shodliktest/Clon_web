@@ -224,6 +224,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:var(
 .emp{text-align:center;padding:1rem;color:var(--text3);font-size:.78rem}
 .err{color:#ef4444;font-size:.78rem;text-align:center;padding:1rem}
 .divider{height:1px;background:var(--border);margin:.6rem 0}
+
+/* ══ GLOW CARD + AUTO-CAROUSEL (index.html bilan bir xil, minimal og'irlik) ══ */
+.card{ position:relative; z-index:0; overflow:visible; }
+.card.glow{ isolation:isolate; }
+.card.glow::before{
+  content:'';position:absolute;inset:-8%;z-index:-1;
+  background:conic-gradient(from 0deg,
+    transparent 0deg, var(--acc) 25deg, var(--acc2) 55deg, transparent 95deg, transparent 360deg);
+  animation:cardSpin 3.5s linear infinite; will-change:transform; border-radius:50%;
+}
+.card.glow::after{
+  content:'';position:absolute;inset:0;z-index:-1;
+  background:var(--card);border-radius:16px;margin:2px;
+}
+@keyframes cardSpin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){ .card.glow::before{ animation:none; } }
+.scroll{ padding-top:6px; scroll-behavior:smooth; }
 </style>
 </head>
 <body>
@@ -395,6 +412,41 @@ function setAva(id,u,name){
 
 const ICON={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',math:'🧮',it:'💻',science:'🔬',religion:'📖',other:'📚'};
 
+/* ── Auto-scroll karusel (index.html bilan bir xil): har 1s da 1
+   blok siljiydi, foydalanuvchi teginsa/scroll qilsa 3.5s to'xtaydi ── */
+const Carousel = (()=>{
+  const items = new Set();
+  let timer = null;
+  function pause(el){ el._pausedUntil = Date.now() + 3500; }
+  function register(el){
+    el._pausedUntil = 0;
+    ['pointerdown','wheel','touchstart'].forEach(ev =>
+      el.addEventListener(ev, ()=>pause(el), {passive:true}));
+    el.addEventListener('scroll', ()=>{ if(!el._auto) pause(el); }, {passive:true});
+    items.add(el);
+    if(!timer) timer = setInterval(tick, 1000);
+  }
+  function tick(){
+    const now = Date.now();
+    for(const el of Array.from(items)){
+      if(!el.isConnected){ items.delete(el); continue; }
+      if(now < (el._pausedUntil||0)) continue;
+      const card = el.querySelector('.card');
+      if(!card) continue;
+      const gap  = parseFloat(getComputedStyle(el).columnGap || getComputedStyle(el).gap) || 10;
+      const step = card.offsetWidth + gap;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if(maxScroll <= 4) continue;
+      el._auto = true;
+      if(el.scrollLeft + step >= maxScroll - 2){ el.scrollTo({left:0, behavior:'smooth'}); }
+      else{ el.scrollBy({left:step, behavior:'smooth'}); }
+      setTimeout(()=>{ el._auto=false; }, 600);
+    }
+  }
+  return { register };
+})();
+
+
 /* CODE MODAL */
 function openCode(){
   document.getElementById('code-bg').classList.add('on');
@@ -432,7 +484,7 @@ window.delTest=async(id)=>{
 
 /* ══ KARTA qurish ══ */
 function buildCard(t, icon){
-  const c=document.createElement('div');c.className='card';
+  const c=document.createElement('div');c.className='card glow';
   c.onclick=()=>goTo('test.html?id='+(t.test_id||t.id));
   c.innerHTML=`
     <div class="card-icon">${icon}</div>
@@ -507,7 +559,7 @@ function buildMyCard(t, isAdmin_){
   const tid=t.test_id||t.id;
   const owner=String(t.creator_id)===UID;
   const vtag=t.visibility==='public'?'🌐':t.visibility==='link'?'🔗':'🔒';
-  const c=document.createElement('div');c.className='card';
+  const c=document.createElement('div');c.className='card glow';
   c.onclick=()=>goTo('test.html?id='+tid);
   c.innerHTML=`
     <div class="card-icon">📋</div>
@@ -608,9 +660,10 @@ function renderMyTests(showAll){
   } else {
     // Scroll karta ko'rinish
     wrap.innerHTML='';
-    const scroll=document.createElement('div');scroll.className='scroll';
+    const scroll=document.createElement('div');scroll.className='scroll carousel';
     _myTests.forEach(t=>scroll.appendChild(buildMyCard(t,!!(window._isAdmin))));
     wrap.appendChild(scroll);
+    Carousel.register(scroll);
     if(btn){btn.textContent='Barchasi →';btn.onclick=()=>renderMyTests(true);}
   }
 }
@@ -644,10 +697,11 @@ function showMyCats(wrap, btn){
     hdr.querySelector('.see-all').onclick=()=>showMyGroup(wrap, btn, cat, arr, icon, sub, grps);
     g.appendChild(hdr);
 
-    const scroll=document.createElement('div');scroll.className='scroll';
+    const scroll=document.createElement('div');scroll.className='scroll carousel';
     arr.forEach(t=>scroll.appendChild(buildMyCard(t,!!(window._isAdmin))));
     g.appendChild(scroll);
     wrap.appendChild(g);
+    Carousel.register(scroll);
   });
 
   // Orqaga tugma — pastda
@@ -737,9 +791,10 @@ function renderPubGroups(container, grps){
       <button class="see-all">Barchasi →</button>`;
     h.querySelector('.see-all').onclick=()=>showPubList(container,s,a,ic,sb,grps);
     g.appendChild(h);
-    const sc=document.createElement('div');sc.className='scroll';
+    const sc=document.createElement('div');sc.className='scroll carousel';
     a.forEach(t=>sc.appendChild(buildCard(t,ic)));g.appendChild(sc);
     container.appendChild(g);
+    Carousel.register(sc);
   });
 }
 
