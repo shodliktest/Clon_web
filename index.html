@@ -144,23 +144,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:var(
    ══════════════════════════════════════════════════════════ */
 .card{ position:relative; z-index:0; overflow:visible; }
 .card.glow{ isolation:isolate; }
+.card.glow{ isolation:isolate; }
 .card.glow::before{
   content:'';
   position:absolute;
-  inset:-8%;
+  inset:-3px;
   z-index:-1;
+  border-radius:20px;
   background:conic-gradient(from 0deg,
-    transparent 0deg, var(--acc) 25deg, var(--acc2) 55deg, transparent 95deg, transparent 360deg);
+    transparent 0deg, var(--acc) 45deg, var(--acc2) 90deg, transparent 150deg, transparent 360deg);
   animation:cardSpin 3.5s linear infinite;
   will-change:transform;
-  border-radius:50%;
 }
 .card.glow::after{
   content:'';
   position:absolute; inset:0; z-index:-1;
   background:var(--card);
   border-radius:18px;
-  margin:2px;
+  margin:3px;
 }
 @keyframes cardSpin{ to{ transform:rotate(360deg); } }
 @media (prefers-reduced-motion:reduce){ .card.glow::before{ animation:none; } }
@@ -210,22 +211,40 @@ AuthHelpers.getCurrentUser().then(u=>{
 
 const ICON={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',math:'🧮',it:'💻',science:'🔬',religion:'📖',other:'📚'};
 
-/* ── Auto-scroll karusel: har 1 sekundda 1 ta blok o'ngdan chapga
-   siljiydi. Foydalanuvchi o'zi scroll qilsa/teginsa — 3.5s to'xtaydi,
-   keyin davom etadi. Bitta umumiy interval — ko'p taymer emas. ── */
+/* ── Auto-scroll karusel: har 5 sekundda 1 ta blok o'ngdan chapga
+   siljiydi. Oxiriga yetganda birinchi test darhol ketidan chiqadi —
+   kartalar bir marta klonlanib oxiriga qo'shiladi, chegaraga
+   yetganda sezilmas (animatsiyasiz) sakrash bilan boshiga qaytadi,
+   shuning uchun aylanish hech qachon "to'xtab qolgandek" ko'rinmaydi.
+   Foydalanuvchi o'zi teginsa/scroll qilsa 3.5s to'xtaydi. ── */
 const Carousel = (()=>{
   const items = new Set();
   let timer = null;
 
   function pause(el){ el._pausedUntil = Date.now() + 3500; }
 
+  function cloneForLoop(el){
+    const originals = Array.from(el.children);
+    if (originals.length < 2 || el._cloned) return;
+    originals.forEach(c => {
+      const clone = c.cloneNode(true);
+      // cloneNode DOM elementni ko'chiradi, lekin JS orqali
+      // biriktirilgan .onclick xususiyatini ko'chirmaydi — qo'lda
+      // ko'chirmasak, klonlangan kartalar bosilmaydigan bo'lib qoladi.
+      clone.onclick = c.onclick;
+      el.appendChild(clone);
+    });
+    el._cloned = true;
+  }
+
   function register(el){
     el._pausedUntil = 0;
+    cloneForLoop(el);
     ['pointerdown','wheel','touchstart'].forEach(ev =>
       el.addEventListener(ev, ()=>pause(el), {passive:true}));
     el.addEventListener('scroll', ()=>{ if(!el._auto) pause(el); }, {passive:true});
     items.add(el);
-    if(!timer) timer = setInterval(tick, 1000);
+    if(!timer) timer = setInterval(tick, 5000);
   }
 
   function tick(){
@@ -233,20 +252,31 @@ const Carousel = (()=>{
     for(const el of Array.from(items)){
       if(!el.isConnected){ items.delete(el); continue; }
       if(now < (el._pausedUntil||0)) continue;
-      const card = el.querySelector('.card');
+      const card = el.querySelector('.card, .tcard');
       if(!card) continue;
       const gap  = parseFloat(getComputedStyle(el).columnGap || getComputedStyle(el).gap) || 12;
       const step = card.offsetWidth + gap;
+
+      // Asl (klonlanmagan) kartalar umumiy kengligi — bir marta hisoblanadi
+      if (el._cloned && el._realWidth == null) {
+        const n = el.children.length / 2;
+        if (n > 0 && el.children[n]) {
+          el._realWidth = el.children[n].offsetLeft - el.children[0].offsetLeft;
+        }
+      }
+
       const maxScroll = el.scrollWidth - el.clientWidth;
-      if(maxScroll <= 4) continue;
+      if (maxScroll <= 4) continue;
 
       el._auto = true;
-      if(el.scrollLeft + step >= maxScroll - 2){
-        el.scrollTo({left:0, behavior:'smooth'});
-      } else {
-        el.scrollBy({left:step, behavior:'smooth'});
-      }
-      setTimeout(()=>{ el._auto=false; }, 600);
+      el.scrollBy({left: step, behavior:'smooth'});
+      setTimeout(()=>{
+        // Klon zonasiga o'tib bo'lgach — sezilmas holda asl boshiga qaytaramiz
+        if (el._realWidth && el.scrollLeft >= el._realWidth - 2) {
+          el.scrollLeft = el.scrollLeft - el._realWidth;
+        }
+        el._auto=false;
+      }, 650);
     }
   }
   return { register };

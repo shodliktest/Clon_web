@@ -106,14 +106,15 @@ body{padding-top:0}
    bloklar gorizontal emas, vertikal ro'yxatda) ══ */
 .tcard{ position:relative; z-index:0; isolation:isolate; overflow:visible; }
 .tcard.glow::before{
-  content:'';position:absolute;inset:-6%;z-index:-1;
+  content:'';position:absolute;inset:-3px;z-index:-1;
+  border-radius:calc(var(--radius) + 2px);
   background:conic-gradient(from 0deg,
-    transparent 0deg, var(--accent) 25deg, var(--accent-2) 55deg, transparent 95deg, transparent 360deg);
-  animation:tcardSpin 3.5s linear infinite; will-change:transform; border-radius:50%;
+    transparent 0deg, var(--accent) 45deg, var(--accent-2) 90deg, transparent 150deg, transparent 360deg);
+  animation:tcardSpin 3.5s linear infinite; will-change:transform;
 }
 .tcard.glow::after{
   content:'';position:absolute;inset:0;z-index:-1;
-  background:var(--bg-card);border-radius:var(--radius);margin:2px;
+  background:var(--bg-card);border-radius:var(--radius);margin:3px;
 }
 @keyframes tcardSpin{ to{ transform:rotate(360deg); } }
 @media (prefers-reduced-motion:reduce){ .tcard.glow::before{ animation:none; } }
