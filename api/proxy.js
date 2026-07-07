@@ -41,13 +41,22 @@ function jsonResp(data, status = 200) {
 }
 
 // ══ Supabase REST (PostgREST) — xom fetch orqali ═══════════════
+// Yangi (sb_secret_/sb_publishable_) kalitlar JWT EMAS — Supabase'ning
+// o'z hujjatiga ko'ra ularni "Authorization: Bearer" sarlavhasida
+// yuborib bo'lmaydi, faqat "apikey" sarlavhasida. Eski (eyJ... bilan
+// boshlanuvchi) JWT kalitlar uchun esa ikkalasi ham kerak (avvalgidek).
+const IS_LEGACY_JWT_KEY = SUPABASE_KEY.startsWith('eyJ');
+
 function pgHeaders(extra = {}) {
-  return {
+  const h = {
     'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
     ...extra,
   };
+  if (IS_LEGACY_JWT_KEY) {
+    h['Authorization'] = `Bearer ${SUPABASE_KEY}`;
+  }
+  return h;
 }
 
 async function pgFetch(path, opts = {}) {
