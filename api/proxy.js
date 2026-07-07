@@ -272,18 +272,47 @@ export default async function handler(request) {
 
     // ── debug ───────────────────────────────────────────────────
     if (ep === 'debug') {
-      let testsCount = null, err = null;
-      if (SUPABASE_URL && SUPABASE_KEY) {
-        try { testsCount = await db.count('tests'); }
-        catch (e) { err = String(e?.message || e); }
+      const urlLooksValid = /^https:\/\/[a-z0-9]+\.supabase\.co$/i.test(SUPABASE_URL);
+      const diag = {
+        supabase_url_set:   !!SUPABASE_URL,
+        supabase_key_set:   !!SUPABASE_KEY,
+        bot_token_set:      !!BOT_TOKEN,
+        supabase_url_value: SUPABASE_URL ? (SUPABASE_URL.slice(0,8)+'...'+SUPABASE_URL.slice(-14)) : null,
+        supabase_url_looks_valid: urlLooksValid,
+        supabase_key_prefix: SUPABASE_KEY ? SUPABASE_KEY.slice(0,12)+'...' : null,
+        supabase_key_length: SUPABASE_KEY.length,
+      };
+
+      // 1-qadam: Supabase'ning umumiy REST manziliga oddiy ulanish
+      // tekshiruvi (jadval so'ramasdan) — tarmoq darajasida yetib
+      // borayapdimi yoki yo'qmi shuni ko'radi.
+      try {
+        const r0 = await fetch(`${REST}/`, { headers: pgHeaders() });
+        diag.raw_connectivity = { ok: r0.ok, status: r0.status };
+      } catch (e0) {
+        diag.raw_connectivity = {
+          ok: false,
+          thrown: true,
+          name: e0?.name || null,
+          message: String(e0?.message || e0),
+          cause: e0?.cause ? String(e0.cause?.message || e0.cause) : null,
+        };
       }
-      return jsonResp({
-        supabase_url_set: !!SUPABASE_URL,
-        supabase_key_set: !!SUPABASE_KEY,
-        bot_token_set:    !!BOT_TOKEN,
-        tests_count:      testsCount,
-        error:            err,
-      });
+
+      // 2-qadam: haqiqiy so'rov — tests jadvalidan sanoq
+      try {
+        diag.tests_count = await db.count('tests');
+        diag.error = null;
+      } catch (e) {
+        diag.tests_count = null;
+        diag.error = {
+          name: e?.name || null,
+          message: String(e?.message || e),
+          cause: e?.cause ? String(e.cause?.message || e.cause) : null,
+        };
+      }
+
+      return jsonResp(diag);
     }
 
     // ── tests/public ────────────────────────────────────────────
