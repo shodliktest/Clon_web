@@ -268,6 +268,7 @@ body::after{background:radial-gradient(circle,var(--acc3),transparent 65%);botto
 @keyframes cardSpin{ to{ transform:rotate(360deg); } }
 @media (prefers-reduced-motion:reduce){ .card.glow::before{ animation:none; } }
 .scroll{ padding-top:6px; scroll-behavior:smooth; }
+.scroll.carousel{ scroll-behavior:auto; scroll-snap-type:none; }
 </style>
 </head>
 <body>
@@ -439,91 +440,107 @@ function setAva(id,u,name){
 
 const ICON={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',math:'🧮',it:'💻',science:'🔬',religion:'📖',other:'📚'};
 
-/* ── Auto-scroll karusel (index.html bilan bir xil): har 1s da 1
-   blok siljiydi, foydalanuvchi teginsa/scroll qilsa 3.5s to'xtaydi ── */
+/* ══════════════════════════════════════════════════════════
+   INFINITE CAROUSEL — professional rAF-based engine
+   (index.html bilan bitta xil dvigatel — batafsil izoh o'sha
+   fayldadagi kabi: setInterval+scrollBy o'rniga har freymda
+   piksel-piksel siljitish, natijada tebranishsiz, chinakam
+   uzluksiz va ikki tomonga ham cheksiz aylanuvchi karusel.) ── */
 const Carousel = (()=>{
-  const items = new Set();
-  let timer = null;
-  function pause(el){ el._pausedUntil = Date.now() + 3500; }
+  const rig = new Set();
+  let rafId = null;
+  let lastT = null;
 
-  // Elementlarni 3 marta joylaymiz: [asl][asl][asl]
-  // Foydalanuvchi istalgan tomonga cheksiz scroll qila oladi —
-  // o'rtadagi nusxadan chetga chiqib ketsa, sezilmas holda
-  // (animatsiyasiz) markaziy nusxaga qaytariladi.
+  const SPEED        = 34;
+  const RESUME_DELAY = 2200;
+
   function cloneForLoop(el){
-    if (el._cloned) return;
+    if (el._ready) return;
     const originals = Array.from(el.children);
     if (originals.length < 2) return;
     for (let rep = 0; rep < 2; rep++){
-      originals.forEach(c => {
+      for (const c of originals){
         const clone = c.cloneNode(true);
         clone.onclick = c.onclick;
+        clone.setAttribute('aria-hidden','true');
+        clone.tabIndex = -1;
         el.appendChild(clone);
-      });
+      }
     }
-    el._cloned = true;
     el._setCount = originals.length;
+    el._ready = true;
   }
 
   function measure(el){
-    if (el._blockWidth != null) return;
     const n = el._setCount;
-    if (!n || el.children.length < n*2+1) return;
-    el._blockWidth = el.children[n].offsetLeft - el.children[0].offsetLeft;
-    if (el._blockWidth > 0){
-      el.scrollLeft = el._blockWidth + (el.scrollLeft % el._blockWidth || 0);
+    if (!n || el.children.length < n*2+1) return false;
+    const bw = el.children[n].offsetLeft - el.children[0].offsetLeft;
+    if (bw <= 0) return false;
+    el._blockWidth = bw;
+    if (!el._initialized){
+      el.scrollLeft = bw + (el.scrollLeft % bw || 0);
+      el._initialized = true;
+    }
+    return true;
+  }
+
+  function normalize(el){
+    const bw = el._blockWidth;
+    if (!bw) return;
+    while (el.scrollLeft < bw * 0.5) el.scrollLeft += bw;
+    while (el.scrollLeft >= bw * 1.5) el.scrollLeft -= bw;
+  }
+
+  function frame(t){
+    rafId = requestAnimationFrame(frame);
+    if (lastT == null){ lastT = t; return; }
+    const dt = Math.min(64, t - lastT);
+    lastT = t;
+
+    for (const el of rig){
+      if (!el.isConnected){ rig.delete(el); continue; }
+      if (el._hover || el._dragging) continue;
+      if (el._resumeAt && t < el._resumeAt) continue;
+      if (!el._blockWidth && !measure(el)) continue;
+      el.scrollLeft += (SPEED * dt) / 1000;
+      normalize(el);
     }
   }
 
-  function wrap(el){
-    const bw = el._blockWidth;
-    if (!bw) return;
-    let jumped = false;
-    if (el.scrollLeft < bw * 0.5){
-      el.scrollLeft += bw; jumped = true;
-    }
-    else if (el.scrollLeft > bw * 1.5){
-      el.scrollLeft -= bw; jumped = true;
-    }
-    if (jumped){
-      const prev = el.style.scrollBehavior;
-      el.style.scrollBehavior = 'auto';
-      void el.offsetHeight;
-      el.style.scrollBehavior = prev || '';
-    }
+  function pauseInteraction(el){
+    el._resumeAt = performance.now() + RESUME_DELAY;
   }
 
   function register(el){
-    el._pausedUntil = 0;
     cloneForLoop(el);
-    requestAnimationFrame(()=>{ measure(el); });
-    ['pointerdown','wheel','touchstart'].forEach(ev =>
-      el.addEventListener(ev, ()=>pause(el), {passive:true}));
-    el.addEventListener('scroll', ()=>{
-      if(!el._auto) pause(el);
-      wrap(el);
+    el._blockWidth = 0;
+    el._initialized = false;
+
+    el.addEventListener('pointerenter', ()=>{ el._hover = true; }, {passive:true});
+    el.addEventListener('pointerleave', ()=>{ el._hover = false; pauseInteraction(el); }, {passive:true});
+    el.addEventListener('pointerdown',  ()=>{ el._dragging = true; }, {passive:true});
+    window.addEventListener('pointerup', ()=>{
+      if (el._dragging){ el._dragging = false; pauseInteraction(el); }
     }, {passive:true});
-    items.add(el);
-    if(!timer) timer = setInterval(tick, 5000);
+    el.addEventListener('wheel',      ()=>pauseInteraction(el), {passive:true});
+    el.addEventListener('touchstart', ()=>{ el._dragging = true; }, {passive:true});
+    el.addEventListener('touchend',   ()=>{ el._dragging = false; pauseInteraction(el); }, {passive:true});
+
+    rig.add(el);
+
+    let tries = 0;
+    (function tryMeasure(){
+      if (measure(el) || ++tries > 20) return;
+      requestAnimationFrame(tryMeasure);
+    })();
+
+    if (rafId == null) rafId = requestAnimationFrame(frame);
   }
-  function tick(){
-    const now = Date.now();
-    for(const el of Array.from(items)){
-      if(!el.isConnected){ items.delete(el); continue; }
-      if(now < (el._pausedUntil||0)) continue;
-      const card = el.querySelector('.card');
-      if(!card) continue;
-      measure(el);
-      const gap  = parseFloat(getComputedStyle(el).columnGap || getComputedStyle(el).gap) || 10;
-      const step = card.offsetWidth + gap;
-      el._auto = true;
-      el.scrollBy({left: step, behavior:'smooth'});
-      setTimeout(()=>{
-        wrap(el);
-        el._auto=false;
-      }, 650);
-    }
-  }
+
+  window.addEventListener('resize', ()=>{
+    for (const el of rig){ el._blockWidth = 0; el._initialized = false; }
+  });
+
   return { register };
 })();
 
