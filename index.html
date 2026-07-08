@@ -186,7 +186,7 @@ body::after{background:radial-gradient(circle,var(--acc3),transparent 65%);botto
 @media (prefers-reduced-motion:reduce){ .card.glow::before{ animation:none; } }
 
 .scroll{ padding-top:6px; }
-.scroll.carousel{ scroll-behavior:smooth; }
+.scroll.carousel{ scroll-behavior:auto; scroll-snap-type:none; }
 
 </style>
 </head>
@@ -230,107 +230,139 @@ AuthHelpers.getCurrentUser().then(u=>{
 
 const ICON={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',math:'🧮',it:'💻',science:'🔬',religion:'📖',other:'📚'};
 
-/* ── Auto-scroll karusel: har 5 sekundda 1 ta blok o'ngdan chapga
-   siljiydi. Oxiriga yetganda birinchi test darhol ketidan chiqadi —
-   kartalar bir marta klonlanib oxiriga qo'shiladi, chegaraga
-   yetganda sezilmas (animatsiyasiz) sakrash bilan boshiga qaytadi,
-   shuning uchun aylanish hech qachon "to'xtab qolgandek" ko'rinmaydi.
-   Foydalanuvchi o'zi teginsa/scroll qilsa 3.5s to'xtaydi. ── */
+/* ══════════════════════════════════════════════════════════
+   INFINITE CAROUSEL — professional rAF-based engine
+   ────────────────────────────────────────────────────────
+   Nima uchun setInterval+scrollBy o'rniga requestAnimationFrame?
+   - scrollBy({behavior:'smooth'}) brauzer ichki easing'iga bog'liq
+     bo'lib, tugash vaqti kafolatlanmaydi -> setTimeout bilan
+     sinxronlashda tebranish (jitter) chiqadi.
+   - rAF esa har video-freymda (~16.6ms) bitta piksel qadam qo'yadi:
+     harakat butunlay bizning nazoratimizda, uzluksiz va freym-aniq.
+
+   Cheksiz loop mexanizmi:
+   - Har bir ro'yxat 3 marta ketma-ket joylanadi: [A][A][A]
+   - Boshlanishda scrollLeft o'rtadagi "A" blokning boshiga
+     qo'yiladi -> ikki tomonga ham cheksiz joy bor.
+   - Har freymda scrollLeft o'sib boradi; o'rta blokdan bir bloklik
+     masofaga chiqib ketilganda (blockWidth), scrollLeft'dan yoki
+     unga bitta blockWidth sezilmas qo'shiladi/ayiriladi — bu aynan
+     shu freymda amalga oshgani uchun ko'z hech qanday sakrashni
+     ilg'ay olmaydi (elementlar bir xil, faqat referens nuqta
+     almashadi).
+   ══════════════════════════════════════════════════════════ */
 const Carousel = (()=>{
-  const items = new Set();
-  let timer = null;
+  const rig = new Set();
+  let rafId = null;
+  let lastT = null;
 
-  function pause(el){ el._pausedUntil = Date.now() + 3500; }
+  const SPEED         = 34;   // piksel/sekund — o'qish uchun qulay tezlik
+  const RESUME_DELAY  = 2200; // foydalanuvchi teginishni to'xtatgach kutish (ms)
 
-  // Elementlarni 3 marta joylaymiz: [asl][asl][asl]
-  // Foydalanuvchi istalgan tomonga cheksiz scroll qila oladi —
-  // o'rtadagi nusxadan chetga chiqib ketsa, sezilmas holda
-  // (behavior:'auto', animatsiyasiz) markaziy nusxaga qaytariladi.
   function cloneForLoop(el){
-    if (el._cloned) return;
+    if (el._ready) return;
     const originals = Array.from(el.children);
     if (originals.length < 2) return;
     for (let rep = 0; rep < 2; rep++){
-      originals.forEach(c => {
+      for (const c of originals){
         const clone = c.cloneNode(true);
         clone.onclick = c.onclick;
+        clone.setAttribute('aria-hidden','true');
+        clone.tabIndex = -1;
         el.appendChild(clone);
-      });
+      }
     }
-    el._cloned = true;
     el._setCount = originals.length;
+    el._ready = true;
   }
 
   function measure(el){
-    if (el._blockWidth != null) return;
     const n = el._setCount;
-    if (!n || el.children.length < n*2+1) return;
-    // Bitta "to'plam" (asl nusxalar guruhi) egallagan kenglik
-    el._blockWidth = el.children[n].offsetLeft - el.children[0].offsetLeft;
-    if (el._blockWidth > 0){
-      // Boshlanishda o'rta blokka joylashtiramiz, shunda ikki
-      // tomonga ham cheksiz scroll qilish uchun joy bo'ladi
-      el.scrollLeft = el._blockWidth + (el.scrollLeft % el._blockWidth || 0);
+    if (!n || el.children.length < n*2+1) return false;
+    const bw = el.children[n].offsetLeft - el.children[0].offsetLeft;
+    if (bw <= 0) return false;
+    el._blockWidth = bw;
+    if (!el._initialized){
+      el.scrollLeft = bw + (el.scrollLeft % bw || 0);
+      el._initialized = true;
+    }
+    return true;
+  }
+
+  function normalize(el){
+    const bw = el._blockWidth;
+    if (!bw) return;
+    // scrollLeft'ni doim [bw*0.5 , bw*1.5) oralig'ida ushlab turamiz —
+    // native scroll-snap yoki drag-momentum katta sakrash qilsa ham
+    // (masalan flick gesture), keyingi freymda joyida tiklanadi.
+    while (el.scrollLeft < bw * 0.5) el.scrollLeft += bw;
+    while (el.scrollLeft >= bw * 1.5) el.scrollLeft -= bw;
+  }
+
+  function frame(t){
+    rafId = requestAnimationFrame(frame);
+    if (lastT == null){ lastT = t; return; }
+    const dt = Math.min(64, t - lastT); // sakrashlarni cheklab qo'yamiz (tab yashiringanda va h.k.)
+    lastT = t;
+
+    for (const el of rig){
+      if (!el.isConnected){ rig.delete(el); continue; }
+      if (el._hover || el._dragging) continue;
+      if (el._resumeAt && t < el._resumeAt) continue;
+
+      if (!el._blockWidth && !measure(el)) continue;
+
+      el.scrollLeft += (SPEED * dt) / 1000;
+      normalize(el);
     }
   }
 
-  function wrap(el){
-    const bw = el._blockWidth;
-    if (!bw) return;
-    let jumped = false;
-    if (el.scrollLeft < bw * 0.5){
-      el.scrollLeft += bw; jumped = true;
-    }
-    else if (el.scrollLeft > bw * 1.5){
-      el.scrollLeft -= bw; jumped = true;
-    }
-    if (jumped){
-      // scroll-behavior:smooth JS orqali scrollLeft'ni ham
-      // animatsiyalab qo'yishi mumkin — sakrashni sezilmas qilish
-      // uchun vaqtincha o'chirib, darhol qaytaramiz.
-      const prev = el.style.scrollBehavior;
-      el.style.scrollBehavior = 'auto';
-      void el.offsetHeight; // reflow majburlash
-      el.style.scrollBehavior = prev || '';
-    }
+  function pauseInteraction(el){
+    el._resumeAt = performance.now() + RESUME_DELAY;
   }
 
   function register(el){
-    el._pausedUntil = 0;
     cloneForLoop(el);
-    requestAnimationFrame(()=>{
-      measure(el);
-    });
-    ['pointerdown','wheel','touchstart'].forEach(ev =>
-      el.addEventListener(ev, ()=>pause(el), {passive:true}));
-    // Foydalanuvchi qo'lda scroll qilganda ham cheksiz aylanish ishlashi uchun
-    el.addEventListener('scroll', ()=>{
-      if(!el._auto) pause(el);
-      wrap(el);
+    el._blockWidth = 0;
+    el._initialized = false;
+
+    // Foydalanuvchi bilan aloqa: sichqoncha ustida to'xtaydi,
+    // teginish/drag paytida to'xtaydi, qo'yib yuborgach biroz
+    // kutib qayta boshlaydi — bu tabiiy va professional tuyuladi.
+    el.addEventListener('pointerenter', ()=>{ el._hover = true; }, {passive:true});
+    el.addEventListener('pointerleave', ()=>{ el._hover = false; pauseInteraction(el); }, {passive:true});
+    el.addEventListener('pointerdown',  ()=>{ el._dragging = true; }, {passive:true});
+    window.addEventListener('pointerup', ()=>{
+      if (el._dragging){ el._dragging = false; pauseInteraction(el); }
     }, {passive:true});
-    items.add(el);
-    if(!timer) timer = setInterval(tick, 5000);
+    el.addEventListener('wheel',      ()=>pauseInteraction(el), {passive:true});
+    el.addEventListener('touchstart', ()=>{ el._dragging = true; }, {passive:true});
+    el.addEventListener('touchend',   ()=>{ el._dragging = false; pauseInteraction(el); }, {passive:true});
+
+    rig.add(el);
+
+    // Kartalar/fontlar joylashguncha bir necha freym kutamiz —
+    // shrift almashinuvi (font-display:swap) layout'ni keyinroq
+    // o'zgartirishi mumkin, shu sabab bitta rAF yetarli emas.
+    let tries = 0;
+    (function tryMeasure(){
+      if (measure(el) || ++tries > 20) return;
+      requestAnimationFrame(tryMeasure);
+    })();
+
+    if (rafId == null) rafId = requestAnimationFrame(frame);
   }
 
-  function tick(){
-    const now = Date.now();
-    for(const el of Array.from(items)){
-      if(!el.isConnected){ items.delete(el); continue; }
-      if(now < (el._pausedUntil||0)) continue;
-      const card = el.querySelector('.card, .tcard');
-      if(!card) continue;
-      measure(el);
-      const gap  = parseFloat(getComputedStyle(el).columnGap || getComputedStyle(el).gap) || 12;
-      const step = card.offsetWidth + gap;
+  // Oyna o'lchami o'zgarsa (mobil rotatsiya, splitview) blok
+  // kengligini qayta hisoblaymiz — aks holda joy noto'g'ri bo'lib qoladi.
+  const ro = new ResizeObserver(()=>{
+    for (const el of rig){ el._blockWidth = 0; el._initialized = false; }
+  });
+  window.addEventListener('resize', ()=>{
+    for (const el of rig){ el._blockWidth = 0; el._initialized = false; }
+  });
 
-      el._auto = true;
-      el.scrollBy({left: step, behavior:'smooth'});
-      setTimeout(()=>{
-        wrap(el);
-        el._auto = false;
-      }, 650);
-    }
-  }
+  return { register, observeResize: (el)=>ro.observe(el) };
   return { register };
 })();
 
