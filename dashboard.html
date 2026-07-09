@@ -179,14 +179,27 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;color:var(--tex
   --mx:50%; --my:50%;
   min-width:176px;max-width:176px;flex-shrink:0;scroll-snap-align:start;
   background:var(--card);border-radius:19px;padding:.95rem;
-  border:1px solid var(--border);box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
-  cursor:pointer;transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s;
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);position:relative;z-index:0;overflow:hidden;
+  cursor:pointer;transition:box-shadow .28s;isolation:isolate;
   display:flex;flex-direction:column;opacity:0;animation:cardIn .5s cubic-bezier(.2,.8,.2,1) forwards}
 .card::before{content:'';position:absolute;inset:0;z-index:0;opacity:0;pointer-events:none;transition:opacity .35s;
   background:radial-gradient(280px circle at var(--mx) var(--my),rgba(124,58,237,.14),transparent 70%)}
-.card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+.card:hover{box-shadow:var(--shadow-lg)}
 .card:hover::before{opacity:1}
 .card>*{position:relative;z-index:1}
+/* ── YONIB AYLANUVCHI CHEGARA ──
+   Tor conic-gradient segmenti kartaning chekkasi bo'ylab aylanadi.
+   Segment juda tor (faqat ~20%) bo'lgani uchun orqa fonda hech qanday
+   "to'rtburchak blok" ko'rinmaydi — faqat ingichka yorug' chiziq. ── */
+.card::after{
+  content:'';position:absolute;z-index:-1;
+  top:50%;left:50%;width:340px;height:340px;margin:-170px 0 0 -170px;
+  background:conic-gradient(from 0deg,
+    transparent 0%, transparent 78%, var(--p1) 88%, var(--p2) 94%, var(--p3) 98%, transparent 100%);
+  animation:cardGlow 3.6s linear infinite;will-change:transform;
+}
+@keyframes cardGlow{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){ .card::after{ animation:none; } }
 .card-icon{width:44px;height:44px;border-radius:13px;background:var(--bg-deep);
   display:flex;align-items:center;justify-content:center;font-size:1.35rem;margin-bottom:.6rem;
   transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
@@ -199,10 +212,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;color:var(--tex
 .chips{display:flex;gap:.28rem;flex-wrap:wrap;margin-bottom:.65rem}
 .ch{display:inline-flex;align-items:center;padding:.16rem .45rem;border-radius:99px;
   font-size:.63rem;font-weight:700;background:var(--bg-deep);color:var(--p1);border:1px solid var(--border-soft)}
-.card-btn{display:flex;align-items:center;justify-content:center;gap:.3rem;width:100%;padding:.62rem;
+.card-actions{display:flex;gap:.4rem;margin-top:auto}
+.card-btn{display:flex;align-items:center;justify-content:center;gap:.3rem;flex:1;padding:.62rem;
   border-radius:12px;border:none;cursor:pointer;color:#fff;background:linear-gradient(120deg,var(--p1),var(--p2));
-  font-family:inherit;font-size:.79rem;font-weight:800;text-align:center;transition:box-shadow .25s;margin-top:auto}
+  font-family:inherit;font-size:.79rem;font-weight:800;text-align:center;transition:box-shadow .25s}
 .card:hover .card-btn{box-shadow:0 8px 20px rgba(124,58,237,.4)}
+.card-view{display:flex;align-items:center;justify-content:center;width:38px;flex-shrink:0;
+  border-radius:12px;border:1px solid var(--border);background:var(--card-2);color:var(--text2);
+  cursor:pointer;font-size:.9rem;transition:all .22s}
+.card-view:hover{border-color:var(--p1);color:var(--p1);background:var(--border-soft)}
 
 .list-view{padding:0}
 .li{
@@ -290,6 +308,44 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;color:var(--tex
 @keyframes spin{to{transform:rotate(360deg)}}
 .emp{text-align:center;padding:1.4rem;color:var(--text3);font-size:.82rem}
 .err{color:var(--bad);font-size:.82rem;text-align:center;padding:1.2rem}
+
+/* ══════════════════════════════════════════════════════════
+   BOOK PREVIEW MODAL — "Ko'rish" tugmasi bosilganda ochiladigan
+   test haqida to'liq ma'lumot oynasi.
+   ══════════════════════════════════════════════════════════ */
+.book-modal-bg{display:none;position:fixed;inset:0;background:rgba(10,7,20,.6);backdrop-filter:blur(8px);
+  z-index:1500;align-items:center;justify-content:center;padding:1rem}
+.book-modal-bg.on{display:flex;animation:fadeIn .25s ease}
+.book-modal{background:var(--card);border-radius:26px;width:100%;max-width:400px;
+  border:1px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden;position:relative;
+  animation:popIn .4s cubic-bezier(.2,.9,.3,1.2)}
+.book-cover{background:linear-gradient(135deg,var(--p1),var(--p2) 55%,var(--p3));
+  padding:2rem 1.6rem 1.8rem;position:relative;overflow:hidden;isolation:isolate}
+.book-cover::before,.book-cover::after{content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.14)}
+.book-cover::before{width:180px;height:180px;top:-80px;right:-50px;animation:ctaFloat 8s ease-in-out infinite}
+.book-cover::after{width:110px;height:110px;bottom:-50px;left:-30px;animation:ctaFloat 7s ease-in-out infinite reverse}
+.book-close{position:absolute;top:.85rem;right:.85rem;width:32px;height:32px;border-radius:10px;
+  border:none;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;font-size:.9rem;z-index:2;
+  display:flex;align-items:center;justify-content:center;transition:all .22s}
+.book-close:hover{background:rgba(255,255,255,.35);transform:rotate(90deg)}
+.book-badge{display:inline-flex;padding:.32rem .8rem;border-radius:99px;background:rgba(255,255,255,.2);
+  color:#fff;font-size:.7rem;font-weight:800;margin-bottom:.9rem;position:relative}
+.book-cover-title{font-family:'Unbounded',sans-serif;font-size:1.25rem;font-weight:900;color:#fff;
+  line-height:1.28;position:relative}
+.book-body{padding:1.5rem 1.6rem}
+.book-title{font-size:1.02rem;font-weight:800;color:var(--text);margin-bottom:.3rem}
+.book-author{font-size:.78rem;color:var(--text3);font-weight:600;margin-bottom:1.1rem}
+.book-desc{font-size:.85rem;color:var(--text2);line-height:1.65;margin-bottom:1.3rem}
+.book-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1.4rem}
+.b-meta{background:var(--bg-deep);border-radius:13px;padding:.7rem .5rem;text-align:center}
+.b-ico{font-size:1.1rem;margin-bottom:.3rem}
+.b-val{font-size:.76rem;font-weight:800;color:var(--text)}
+.b-lbl{font-size:.6rem;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:.1rem}
+.book-start-btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;
+  padding:.9rem;border-radius:15px;border:none;cursor:pointer;color:#fff;font-family:inherit;
+  font-size:.9rem;font-weight:800;background:linear-gradient(120deg,var(--p1),var(--p2));
+  transition:transform .25s,box-shadow .25s}
+.book-start-btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(124,58,237,.4)}
 </style>
 </head>
 <body>
@@ -361,7 +417,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;color:var(--tex
       <div class="sec-t">📝 Mening testlarim</div>
       <div style="display:flex;gap:.4rem;align-items:center">
         <button class="see-all" id="my-see-all" style="display:none">Barchasi →</button>
-        <button class="sec-new" onclick="goTo('create.html')">+ Yangi</button>
+        <button class="sec-new" id="btn-new-test" onclick="goTo('create.html')" style="display:none">+ Yangi</button>
       </div>
     </div>
     <div id="my-tests"><div class="sp-wrap"><div class="sp"><i></i><i></i></div></div></div>
@@ -385,7 +441,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;color:var(--tex
   <div class="sec">
     <div class="sec-t" style="margin-bottom:.6rem">⚡ Tezkor</div>
     <div class="qa-wrap">
-      <button class="qa qa-p" onclick="goTo('create.html')">✏️ Yangi test yaratish</button>
+      <button class="qa qa-p" id="btn-new-test-qa" onclick="goTo('create.html')" style="display:none">✏️ Yangi test yaratish</button>
       <button class="qa qa-s" onclick="openCode()">🔑 Kod orqali kirish</button>
     </div>
   </div>
@@ -418,6 +474,28 @@ body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;color:var(--tex
         font-weight:800;font-size:.86rem;cursor:pointer;font-family:inherit;transition:all .25s">
       Qidirish →
     </button>
+  </div>
+</div>
+
+<!-- KO'RISH (PREVIEW) MODAL -->
+<div class="book-modal-bg" id="book-modal-bg">
+  <div class="book-modal">
+    <div class="book-cover">
+      <button class="book-close" onclick="closeBookModal()">✕</button>
+      <div class="book-badge" id="book-badge">Umumiy</div>
+      <div class="book-cover-title" id="book-cover-title">...</div>
+    </div>
+    <div class="book-body">
+      <div class="book-title" id="book-title">...</div>
+      <div class="book-author" id="book-author">...</div>
+      <p class="book-desc" id="book-desc-text"></p>
+      <div class="book-meta">
+        <div class="b-meta"><div class="b-ico">📝</div><div class="b-val" id="book-qcount">—</div><div class="b-lbl">Savol</div></div>
+        <div class="b-meta"><div class="b-ico">⏱</div><div class="b-val" id="book-time">—</div><div class="b-lbl">Vaqt</div></div>
+        <div class="b-meta"><div class="b-ico">👁</div><div class="b-val" id="book-solves">—</div><div class="b-lbl">Yechilgan</div></div>
+      </div>
+      <button class="book-start-btn" id="book-start-btn">Sinovni boshlash →</button>
+    </div>
   </div>
 </div>
 
@@ -603,7 +681,11 @@ function buildCard(t, icon, idx){
       '<span class="ch">👁 '+(t.solve_count||0)+'</span>'+
       (t.avg_score?('<span class="ch">⭐'+Math.round(t.avg_score)+'%</span>'):'')+
     '</div>'+
-    '<button class="card-btn">Boshlash →</button>';
+    '<div class="card-actions">'+
+      '<button class="card-view" title="Ko\'rish">👁</button>'+
+      '<button class="card-btn">Boshlash →</button>'+
+    '</div>';
+  c.querySelector('.card-view').onclick=function(e){e.stopPropagation();openBookModal(t,icon);};
   return c;
 }
 
@@ -676,7 +758,11 @@ function buildMyCard(t, isAdmin_, idx){
       (t.time_limit?('<span class="ch">⏱'+t.time_limit+'d</span>'):'')+
       (t.avg_score?('<span class="ch">⭐'+Math.round(t.avg_score)+'%</span>'):'')+
     '</div>'+
-    '<button class="card-btn">Boshlash →</button>';
+    '<div class="card-actions">'+
+      '<button class="card-view" title="Ko\'rish">👁</button>'+
+      '<button class="card-btn">Boshlash →</button>'+
+    '</div>';
+  c.querySelector('.card-view').onclick=function(e){e.stopPropagation();openBookModal(t,'📋');};
   return c;
 }
 
@@ -692,6 +778,22 @@ let CU=null,UID='',_myTests=[],_allResults=[];
   try{ud=await DB.getUser(UID);}catch(e){}
   const isAdmin_=!!(ud&&(ud.is_admin||ud.role==='admin'));
   window._isAdmin=isAdmin_;
+  /* ── Teacher/Admin darajasi tekshiruvi ──
+     Backend (js/api.js) foydalanuvchi obyektida rol qanday nom
+     bilan kelishi noaniq bo'lgani uchun bir nechta ehtimoliy
+     maydonni tekshiramiz — qaysi biri mavjud bo'lsa, shu ishlaydi. */
+  const isTeacher_=!!(ud&&(
+    ud.is_teacher || ud.isTeacher ||
+    ud.role==='teacher' || ud.role==='admin' ||
+    ud.tier==='teacher' || ud.plan==='teacher' ||
+    ud.account_type==='teacher'
+  ));
+  const canCreate=isAdmin_||isTeacher_;
+  window._canCreate=canCreate;
+  if(canCreate){
+    const b1=document.getElementById('btn-new-test'); if(b1) b1.style.display='';
+    const b2=document.getElementById('btn-new-test-qa'); if(b2) b2.style.display='';
+  }
 
   setAva('nav-ava',CU,name);
   setAva('p-ava',CU,name);
@@ -711,9 +813,11 @@ let CU=null,UID='',_myTests=[],_allResults=[];
     _myTests=await DB.getMyTests(UID);
     document.getElementById('s-t').textContent=_myTests.length;
     if(!_myTests.length){
-      myWrap.innerHTML='<div class="emp">Test yaratilmagan.'+
-        '<br><button onclick="goTo(\'create.html\')" style="color:var(--p1);font-weight:800;background:none;border:none;cursor:pointer;font-size:.82rem;margin-top:.35rem">✏️ Yaratish →</button>'+
-      '</div>';
+      myWrap.innerHTML = canCreate
+        ? '<div class="emp">Test yaratilmagan.'+
+          '<br><button onclick="goTo(\'create.html\')" style="color:var(--p1);font-weight:800;background:none;border:none;cursor:pointer;font-size:.82rem;margin-top:.35rem">✏️ Yaratish →</button>'+
+          '</div>'
+        : '<div class="emp">Siz hali test yaratmagansiz. Pastdagi ommaviy testlardan boshlashingiz mumkin 👇</div>';
     } else {
       renderMyTests(false);
       if(_myTests.length>1){
@@ -916,6 +1020,53 @@ function showPubList(container, subj, arr, icon, sub, grps){
   back.onclick=function(){renderPubGroups(container,grps);};
   container.appendChild(back);
 }
+
+/* ══════════════════════════════════════════════════════════
+   KO'RISH (PREVIEW) MODAL — "👁 Ko'rish" tugmasi bosilganda
+   test haqida umumiy ma'lumotni ko'rsatadi, "Sinovni boshlash"
+   tugmasi haqiqiy test.html sahifasiga olib o'tadi.
+   ══════════════════════════════════════════════════════════ */
+const CAT_DESC={
+  math:"Mantiqiy fikrlash, aniq hisob-kitoblar va formulalar bilan ishlash tezligini sinovdan o'tkazuvchi modul.",
+  english:"Grammatika, so'z boyligi va gap tuzish qismlari bo'yicha bilimingizni xalqaro standartlar asosida tekshiradi.",
+  it:"Algoritmlar strukturasi, kod sintaksisi va zamonaviy dasturlash prinsiplari bo'yicha bilimingizni sinaydi.",
+  physics:"Fizik qonuniyatlar, formulalar va amaliy masalalarni yechish qobiliyatingizni baholaydi.",
+  biology:"Tirik organizmlar, jarayonlar va biologik tizimlar haqidagi bilimingizni chuqur tekshiradi.",
+  history:"Tarixiy voqealar, sanalar va sabab-oqibat bog'lanishlarini qanchalik bilishingizni aniqlaydi.",
+  religion:"Diniy bilimlar va qadriyatlar bo'yicha tushunchangizni sinovdan o'tkazadi.",
+  russian:"Rus tili grammatikasi va lug'at boyligi bo'yicha bilim darajangizni aniqlaydi.",
+  arabic:"Arab tili grammatikasi va o'qish-yozish ko'nikmalaringizni sinaydi.",
+  turkish:"Turk tili grammatikasi va so'z boyligi bo'yicha bilimingizni tekshiradi.",
+  science:"Tabiiy fanlar bo'yicha umumiy bilim va tushunchalaringizni baholaydi.",
+};
+
+function openBookModal(t, icon){
+  const tid=t.test_id||t.id;
+  const cat=t.category||t.subject||'other';
+  const sub=(typeof getSubject==='function')?getSubject(cat):{label:cat};
+
+  document.getElementById('book-badge').textContent=sub.label||cat;
+  document.getElementById('book-cover-title').textContent=t.title;
+  document.getElementById('book-title').textContent=t.title;
+  document.getElementById('book-author').textContent=esc(t.creator_name||t.authorName||'Anonim');
+  document.getElementById('book-qcount').textContent=(t.question_count||0);
+  document.getElementById('book-time').textContent=t.time_limit?(t.time_limit+' daq'):'Cheksiz';
+  document.getElementById('book-solves').textContent=(t.solve_count||0);
+  document.getElementById('book-desc-text').textContent=
+    CAT_DESC[cat] || "Bilim darajangizni har tomonlama sinab ko'rish va kamchiliklaringizni aniqlash uchun tayyorlangan test.";
+
+  const startBtn=document.getElementById('book-start-btn');
+  startBtn.onclick=function(){ closeBookModal(); goTo('test.html?id='+tid); };
+
+  const bg=document.getElementById('book-modal-bg');
+  bg.classList.add('on');
+}
+function closeBookModal(){
+  document.getElementById('book-modal-bg').classList.remove('on');
+}
+document.getElementById('book-modal-bg').addEventListener('click',function(e){
+  if(e.target===this)closeBookModal();
+});
 </script>
 </body>
 </html>
