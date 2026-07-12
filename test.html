@@ -7,31 +7,42 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
 <style>
   /* ════════════════════════════════════════════════
-     TestPro — Premium Elegant Pro Theme
-     Sapphire academic glassmorphism + light motion
-     (struktura/JS/class/id oʻzgarmagan, faqat dizayn)
+     TESTPRO — "NOVA DECK" (test.html)
+     Struktura/JS/class/id o'zgarmagan — faqat rang
+     tokenlari sapphire'dan Nova Deck binafsha/pushti/
+     firuzaga o'tkazildi, shrift Nova Deck bilan bir xil.
   ════════════════════════════════════════════════ */
   :root{
-    --ink:#101a33;
-    --ink-soft:#33446b;
-    --ink-mute:#6a7fa8;
-    --sapphire:#3461d6;
-    --sapphire-lo:#5b8cf5;
-    --sapphire-hi:#7fb0ff;
-    --glass:rgba(255,255,255,0.40);
-    --glass-2:rgba(255,255,255,0.52);
-    --glass-line:rgba(150,185,255,0.45);
-    --ok:#0fa968;
-    --ok-deep:#0a7a4b;
-    --bad:#e23b4e;
-    --bad-deep:#a51d2c;
-    --gold:#d9a341;
-    --shadow:0 10px 34px rgba(40,78,170,0.16);
-    --shadow-sm:0 4px 16px rgba(40,78,170,0.12);
+    --ink:#141021;
+    --ink-soft:#5B5570;
+    --ink-mute:#9691A8;
+    --sapphire:#7C3AED;
+    --sapphire-lo:#DB2777;
+    --sapphire-hi:#A78BFA;
+    --glass:rgba(255,255,255,0.55);
+    --glass-2:rgba(255,255,255,0.68);
+    --glass-line:rgba(124,58,237,0.22);
+    --ok:#059669;
+    --ok-deep:#047857;
+    --bad:#DC2626;
+    --bad-deep:#B91C1C;
+    --gold:#D97706;
+    --shadow:0 10px 34px rgba(124,58,237,0.16);
+    --shadow-sm:0 4px 16px rgba(124,58,237,0.12);
     --ease:cubic-bezier(.34,1.32,.55,1);
+  }
+  [data-theme=dark]{
+    --ink:#F3F0FF;
+    --ink-soft:#B5AECB;
+    --ink-mute:#716A8C;
+    --glass:rgba(22,18,38,0.6);
+    --glass-2:rgba(27,22,48,0.72);
+    --glass-line:rgba(167,139,250,0.22);
+    --shadow:0 10px 34px rgba(0,0,0,0.4);
+    --shadow-sm:0 4px 18px rgba(0,0,0,0.32);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,23 +59,27 @@
     backdrop-filter:none !important;
     -webkit-backdrop-filter:none !important;
   }
-  /* perf rejimda faqat og'ir GPU effektlarni o'chiramiz, animatsiyalar ishlayveradi */
   body.perf::before, body.perf::after{ display:none !important; }
   body.perf .top-bar, body.perf .timer-box, body.perf .progress-wrap,
   body.perf .subject-card, body.perf .question-card, body.perf .opt,
   body.perf .result-screen, body.perf #bottom-stats{
     background:rgba(255,255,255,0.94) !important;
   }
+  [data-theme=dark] body.perf .top-bar, [data-theme=dark] body.perf .timer-box,
+  [data-theme=dark] body.perf .subject-card, [data-theme=dark] body.perf .question-card,
+  [data-theme=dark] body.perf .opt, [data-theme=dark] body.perf .result-screen,
+  [data-theme=dark] body.perf #bottom-stats{
+    background:rgba(22,18,38,0.94) !important;
+  }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     min-height: 100vh;
     background:
-      radial-gradient(1100px 620px at 18% -8%, rgba(127,176,255,0.42), transparent 60%),
-      radial-gradient(900px 560px at 92% 8%, rgba(146,120,255,0.30), transparent 58%),
-      linear-gradient(168deg, rgba(234,241,252,0.92) 0%, rgba(221,232,251,0.92) 46%, rgba(230,236,250,0.92) 100%),
-      var(--bg-image) center/cover no-repeat fixed;
-    background-color: #e7eefb;
+      radial-gradient(1100px 620px at 18% -8%, rgba(124,58,237,0.22), transparent 60%),
+      radial-gradient(900px 560px at 92% 8%, rgba(219,39,119,0.16), transparent 58%),
+      linear-gradient(168deg, rgba(245,243,255,0.94) 0%, rgba(237,233,254,0.94) 46%, rgba(245,243,255,0.94) 100%);
+    background-color: #F5F3FF;
     color: var(--ink);
     display: flex;
     flex-direction: column;
@@ -73,6 +88,14 @@
     position: relative;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
+    transition:background .4s ease,color .4s ease;
+  }
+  [data-theme=dark] body{
+    background:
+      radial-gradient(1100px 620px at 18% -8%, rgba(124,58,237,0.28), transparent 60%),
+      radial-gradient(900px 560px at 92% 8%, rgba(219,39,119,0.2), transparent 58%),
+      linear-gradient(168deg, rgba(10,7,20,0.97) 0%, rgba(15,11,30,0.97) 46%, rgba(10,7,20,0.97) 100%);
+    background-color:#0A0714;
   }
 
   /* Ambient floating glow — light motion */
@@ -84,16 +107,16 @@
     filter:blur(60px);
     z-index:0;
     pointer-events:none;
-    opacity:.55;
+    opacity:.5;
   }
   body::before{
     width:340px;height:340px;left:-90px;top:8%;
-    background:radial-gradient(circle, rgba(91,140,245,0.55), transparent 70%);
+    background:radial-gradient(circle, rgba(124,58,237,0.5), transparent 70%);
     animation:floatA 16s ease-in-out infinite;
   }
   body::after{
     width:300px;height:300px;right:-80px;top:52%;
-    background:radial-gradient(circle, rgba(150,110,240,0.45), transparent 70%);
+    background:radial-gradient(circle, rgba(219,39,119,0.4), transparent 70%);
     animation:floatB 19s ease-in-out infinite;
   }
   @keyframes floatA{
@@ -105,15 +128,24 @@
     50%{transform:translate(-40px,-36px) scale(1.08)}
   }
 
-  /* hidden academic seal background (subtle) */
   .top-bar, .subject-card, .question-card, .options-wrap,
   .bottom-nav, .result-screen, #bottom-stats { position:relative; z-index:1; }
 
-  /* page-load entrance */
   @keyframes riseIn{
     from{opacity:0;transform:translateY(16px)}
     to{opacity:1;transform:translateY(0)}
   }
+
+  /* ── Tepa panel: dark-mode toggle uchun kichik joy ── */
+  .theme-toggle{
+    position:fixed;top:14px;right:14px;z-index:50;
+    width:38px;height:38px;border-radius:12px;
+    background:var(--glass-2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--glass-line);cursor:pointer;font-size:.95rem;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow-sm);transition:all .25s;
+  }
+  .theme-toggle:hover{transform:rotate(-12deg) scale(1.08)}
 
   /* ===== HEADER ===== */
   .top-bar {
@@ -148,7 +180,7 @@
   }
   .prog-bar-track {
     height: 8px;
-    background: rgba(120,155,225,0.22);
+    background: rgba(124,58,237,0.14);
     border-radius: 99px;
     overflow: hidden;
     position:relative;
@@ -161,7 +193,6 @@
     position:relative;
     overflow:hidden;
   }
-  /* shimmer sweep over progress — light motion */
   .prog-bar-fill::after{
     content:"";
     position:absolute;inset:0;
@@ -184,7 +215,7 @@
     box-shadow: var(--shadow-sm);
     white-space: nowrap;
   }
-  .timer-icon { font-size: 17px; filter:drop-shadow(0 1px 2px rgba(52,97,214,.35)); }
+  .timer-icon { font-size: 17px; filter:drop-shadow(0 1px 2px rgba(124,58,237,.35)); }
   .timer-text {
     font-size: 19px;
     font-weight: 800;
@@ -226,7 +257,7 @@
     width: calc(100% - 32px);
     max-width: 480px;
     margin: 14px 16px 0;
-    background: linear-gradient(135deg, rgba(52,97,214,0.14), rgba(127,176,255,0.10)), var(--glass-2);
+    background: linear-gradient(135deg, rgba(124,58,237,0.14), rgba(219,39,119,0.10)), var(--glass-2);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     border: 1px solid var(--glass-line);
@@ -241,14 +272,15 @@
   .subject-card::before{
     content:"";
     position:absolute;left:0;top:0;width:100%;height:3px;
-    background:linear-gradient(90deg, var(--sapphire), var(--gold), var(--sapphire));
+    background:linear-gradient(90deg, var(--sapphire), var(--gold), var(--sapphire-lo));
     background-size:200% 100%;
     animation:slideGrad 5s linear infinite;
   }
   @keyframes slideGrad{ to{ background-position:200% 0; } }
   .subject-title {
-    font-size: 10px;
-    font-weight: 400;
+    font-family:'Unbounded',sans-serif;
+    font-size: 15px;
+    font-weight: 800;
     color: var(--ink);
     line-height: 1.32;
     letter-spacing:-.2px;
@@ -284,8 +316,8 @@
     margin-bottom: 14px;
     padding:5px 13px;
     border-radius:99px;
-    background:rgba(52,97,214,0.10);
-    border:1px solid rgba(52,97,214,0.18);
+    background:rgba(124,58,237,0.10);
+    border:1px solid rgba(124,58,237,0.18);
   }
   .question-text {
     font-size: 18px;
@@ -305,15 +337,14 @@
     gap: 11px;
   }
 
-  /* ── Izoh bloki — javob berilgandan keyin variantlar ostida ── */
   .answer-explain{
     width: calc(100% - 32px);
     max-width: 480px;
     margin: 4px 16px 0;
     padding: 13px 16px;
     border-radius: 14px;
-    background: rgba(91,140,245,0.10);
-    border: 1.4px solid rgba(91,140,245,0.28);
+    background: rgba(124,58,237,0.10);
+    border: 1.4px solid rgba(124,58,237,0.28);
     border-left: 4px solid var(--sapphire);
     display: flex;
     align-items: flex-start;
@@ -353,7 +384,6 @@
     overflow:visible;
     animation: optIn .4s var(--ease) both;
   }
-  /* staggered option entrance */
   .options-wrap .option:nth-child(1){ animation-delay:.04s }
   .options-wrap .option:nth-child(2){ animation-delay:.10s }
   .options-wrap .option:nth-child(3){ animation-delay:.16s }
@@ -365,45 +395,42 @@
     to{opacity:1; transform:translateX(0)}
   }
   .option:hover:not(:disabled){
-    background: rgba(232,241,255,0.92);
-    border-color: rgba(52,97,214,0.55);
+    background: rgba(237,233,254,0.92);
+    border-color: rgba(124,58,237,0.55);
     transform: translateY(-2px);
-    box-shadow: 0 10px 26px rgba(52,97,214,0.24);
+    box-shadow: 0 10px 26px rgba(124,58,237,0.24);
   }
   .option:active:not(:disabled){ transform:translateY(0) scale(.99); }
 
   .option.selected {
-    background: rgba(52,97,214,0.13);
-    border-color: rgba(52,97,214,0.7);
+    background: rgba(124,58,237,0.13);
+    border-color: rgba(124,58,237,0.7);
     color: var(--ink);
   }
 
-  /* ✓ CORRECT — success burst animation */
   .option.correct {
-    background: linear-gradient(135deg, rgba(15,169,104,0.18), rgba(15,169,104,0.08));
-    border-color: rgba(15,169,104,0.75);
+    background: linear-gradient(135deg, rgba(5,150,105,0.18), rgba(5,150,105,0.08));
+    border-color: rgba(5,150,105,0.75);
     color: var(--ok-deep);
     animation: correctPop .6s var(--ease) both;
-    box-shadow: 0 0 0 rgba(15,169,104,0.5);
+    box-shadow: 0 0 0 rgba(5,150,105,0.5);
   }
   @keyframes correctPop{
-    0%{ transform:scale(1); box-shadow:0 0 0 0 rgba(15,169,104,0.5) }
+    0%{ transform:scale(1); box-shadow:0 0 0 0 rgba(5,150,105,0.5) }
     35%{ transform:scale(1.035) }
-    70%{ box-shadow:0 0 0 12px rgba(15,169,104,0) }
-    100%{ transform:scale(1); box-shadow:0 6px 22px rgba(15,169,104,0.28) }
+    70%{ box-shadow:0 0 0 12px rgba(5,150,105,0) }
+    100%{ transform:scale(1); box-shadow:0 6px 22px rgba(5,150,105,0.28) }
   }
-  /* glowing left bar on correct */
   .option.correct::before{
     content:"";
     position:absolute;left:0;top:0;bottom:0;width:4px;
     background:var(--ok);
-    box-shadow:0 0 12px rgba(15,169,104,.8);
+    box-shadow:0 0 12px rgba(5,150,105,.8);
   }
 
-  /* ✗ WRONG — shake animation */
   .option.wrong {
-    background: linear-gradient(135deg, rgba(226,59,78,0.14), rgba(226,59,78,0.06));
-    border-color: rgba(226,59,78,0.65);
+    background: linear-gradient(135deg, rgba(220,38,38,0.14), rgba(220,38,38,0.06));
+    border-color: rgba(220,38,38,0.65);
     color: var(--bad-deep);
     animation: wrongShake .5s cubic-bezier(.36,.07,.19,.97) both;
   }
@@ -417,13 +444,13 @@
     content:"";
     position:absolute;left:0;top:0;bottom:0;width:4px;
     background:var(--bad);
-    box-shadow:0 0 12px rgba(226,59,78,.7);
+    box-shadow:0 0 12px rgba(220,38,38,.7);
   }
 
   .option-radio {
     width: 24px; height: 24px;
     border-radius: 50%;
-    border: 2px solid rgba(52,97,214,0.5);
+    border: 2px solid rgba(124,58,237,0.5);
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -431,14 +458,15 @@
     transition: all 0.25s var(--ease);
     background:rgba(255,255,255,0.5);
   }
+  [data-theme=dark] .option-radio{ background:rgba(255,255,255,0.08); }
   .option.correct .option-radio {
     border-color: var(--ok); background: var(--ok);
-    box-shadow:0 0 14px rgba(15,169,104,.6);
+    box-shadow:0 0 14px rgba(5,150,105,.6);
     animation:radioPunch .45s var(--ease) both;
   }
   .option.wrong .option-radio {
     border-color: var(--bad); background: var(--bad);
-    box-shadow:0 0 14px rgba(226,59,78,.55);
+    box-shadow:0 0 14px rgba(220,38,38,.55);
     animation:radioPunch .45s var(--ease) both;
   }
   .option.selected .option-radio { border-color: var(--sapphire); background: var(--sapphire); }
@@ -486,19 +514,19 @@
     box-shadow: var(--shadow-sm);
   }
   .nav-btn:hover:not(:disabled){
-    background: rgba(232,241,255,0.95);
-    border-color: rgba(52,97,214,0.5);
+    background: rgba(237,233,254,0.95);
+    border-color: rgba(124,58,237,0.5);
     transform: translateY(-2px);
-    box-shadow:0 8px 22px rgba(52,97,214,.2);
+    box-shadow:0 8px 22px rgba(124,58,237,.2);
   }
   .nav-btn:active:not(:disabled){ transform:translateY(0) scale(.98); }
   .nav-btn.finish {
     background: linear-gradient(135deg, var(--sapphire), var(--sapphire-lo));
     color: white;
     border-color: transparent;
-    box-shadow: 0 6px 20px rgba(52,97,214,0.42);
+    box-shadow: 0 6px 20px rgba(124,58,237,0.42);
   }
-  .nav-btn.finish:hover:not(:disabled){ box-shadow: 0 10px 30px rgba(52,97,214,0.58); }
+  .nav-btn.finish:hover:not(:disabled){ box-shadow: 0 10px 30px rgba(124,58,237,0.58); }
   .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow:none; }
 
   /* ===== RESULT ===== */
@@ -520,7 +548,7 @@
     border-radius: 26px;
     padding: 38px 28px;
     text-align: center;
-    box-shadow: 0 16px 50px rgba(40,78,170,0.2);
+    box-shadow: 0 16px 50px rgba(124,58,237,0.2);
     animation: resultRise .6s var(--ease) both;
     position:relative;
     overflow:hidden;
@@ -540,7 +568,7 @@
     font-size: 74px;
     margin-bottom: 10px;
     animation: trophyPop .7s var(--ease) both, floatY 3s ease-in-out 1s infinite;
-    filter:drop-shadow(0 6px 14px rgba(52,97,214,.3));
+    filter:drop-shadow(0 6px 14px rgba(124,58,237,.3));
   }
   @keyframes trophyPop{
     0%{ transform:scale(0) rotate(-25deg); opacity:0 }
@@ -549,6 +577,7 @@
   }
   @keyframes floatY{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
   .result-score {
+    font-family:'Unbounded',sans-serif;
     font-size: 54px;
     font-weight: 900;
     background:linear-gradient(135deg, var(--sapphire), var(--sapphire-hi));
@@ -566,14 +595,15 @@
     margin-bottom: 24px;
   }
   .r-stat {
-    background: rgba(238,245,255,0.82);
-    border:1px solid rgba(150,185,255,0.3);
+    background: rgba(237,233,254,0.6);
+    border:1px solid rgba(124,58,237,0.2);
     border-radius: 15px;
     padding: 15px 8px;
     transition:transform .2s var(--ease);
   }
+  [data-theme=dark] .r-stat{ background: rgba(124,58,237,0.1); }
   .r-stat:hover{ transform:translateY(-3px); }
-  .r-stat-val { font-size: 23px; font-weight: 800; color: var(--sapphire); }
+  .r-stat-val { font-family:'Unbounded',sans-serif; font-size: 23px; font-weight: 800; color: var(--sapphire); }
   .r-stat-lbl { font-size: 10px; color: var(--ink-mute); margin-top: 5px; font-weight: 600; }
   .result-msg { font-size: 15px; color: var(--ink-soft); margin-bottom: 22px; line-height: 1.55; font-weight:600; }
   .restart-btn {
@@ -586,13 +616,12 @@
     font-size: 15px;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 6px 20px rgba(52,97,214,0.42);
+    box-shadow: 0 6px 20px rgba(124,58,237,0.42);
     transition: transform .2s var(--ease), box-shadow .25s;
   }
-  .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(52,97,214,0.55); }
+  .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(124,58,237,0.55); }
   .restart-btn:active { transform: translateY(0) scale(.98); }
 
-  /* reduced motion */
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.05ms !important; }
     body::before, body::after{ animation:none; }
@@ -627,34 +656,25 @@
     z-index:3;
   }
   @keyframes fxSpin{ to{ --fxAngle:360deg; } }
-  /* tezligi har bir konteyner uchun biroz farqli — jonliroq */
   .subject-card.fx-glow::after{ animation-duration:5s; }
   .question-card.fx-glow::after{ animation-duration:4.2s; }
   .result-card.fx-glow::after{ animation-duration:4.6s; }
   .bstats-inner.fx-glow::after{ animation-duration:3.4s; }
 
-  /* ── Variant tugmalari: funksiyasiga mos rangli yonuvchi chegara ── */
   .option.fx-glow{ --fxMid:var(--sapphire-hi); --fxDeep:var(--sapphire); --fxLight:#eaf2ff; }
   .option.fx-glow::after{ inset:-1.5px; padding:1.5px; animation-duration:4.5s; opacity:1; }
-  /* Toʻgʻri variant → yashil yonadi va tezlashadi */
   .option.correct.fx-glow{ --fxMid:#5fe0a8; --fxDeep:var(--ok); --fxLight:#eafff5; }
   .option.correct.fx-glow::after{ animation-duration:2s; opacity:1; }
-  /* Xato variant → qizil yonadi */
   .option.wrong.fx-glow{ --fxMid:#ff8a96; --fxDeep:var(--bad); --fxLight:#fff0f1; }
   .option.wrong.fx-glow::after{ animation-duration:2.4s; opacity:1; }
-  /* Tanlangan (hali tekshirilmagan) → sapphire kuchliroq */
   .option.selected.fx-glow{ --fxMid:var(--sapphire-hi); --fxDeep:var(--sapphire); }
 
-  /* ── Navigatsiya tugmalari: funksiyasiga mos rang ── */
   .nav-btn.fx-glow{ --fxMid:var(--sapphire-hi); --fxDeep:var(--sapphire); --fxLight:#eaf2ff; }
   .nav-btn.fx-glow::after{ animation-duration:6s; opacity:.8; }
-  /* Tugatish → yashil-sapphire aksent, yorqinroq */
   .nav-btn.finish.fx-glow{ --fxMid:#7fb0ff; --fxDeep:var(--ok); --fxLight:#fff; }
   .nav-btn.finish.fx-glow::after{ animation-duration:3.2s; opacity:1; }
-  /* oʻchirilgan tugmada yonish koʻrinmasin */
   .nav-btn:disabled.fx-glow::after{ opacity:0; }
 
-  /* Fallback: @property qoʻllab-quvvatlamasa, oddiy yonuvchi ramka */
   @supports not (background: conic-gradient(from var(--fxAngle), #000, #fff)){
     .fx-glow::after{
       background:linear-gradient(120deg, transparent, var(--fxMid), transparent);
@@ -669,20 +689,24 @@
     position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     z-index:500;
     background:
-      radial-gradient(900px 560px at 50% 28%, rgba(127,176,255,0.40), transparent 68%),
-      radial-gradient(700px 500px at 80% 80%, rgba(150,110,240,0.28), transparent 65%),
-      rgba(224,233,250,.96);
+      radial-gradient(900px 560px at 50% 28%, rgba(124,58,237,0.24), transparent 68%),
+      radial-gradient(700px 500px at 80% 80%, rgba(219,39,119,0.18), transparent 65%),
+      rgba(237,233,254,.96);
     backdrop-filter:blur(10px);
     -webkit-backdrop-filter:blur(10px);
     flex-direction:column;gap:30px;
   }
-  /* ── Pro orbital loader ── */
+  [data-theme=dark] #scr-load{
+    background:
+      radial-gradient(900px 560px at 50% 28%, rgba(124,58,237,0.3), transparent 68%),
+      radial-gradient(700px 500px at 80% 80%, rgba(219,39,119,0.22), transparent 65%),
+      rgba(10,7,20,.96);
+  }
   .loadwrap{
     position:relative;
     width:128px;height:128px;
     display:flex;align-items:center;justify-content:center;
   }
-  /* tashqi aylanma yorugʻ halqa (conic) */
   .loadwrap::before{
     content:"";
     position:absolute; inset:0;
@@ -691,37 +715,34 @@
     -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
     mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
     animation:_sp 1.6s linear infinite;
-    filter:drop-shadow(0 0 8px rgba(52,97,214,.45));
+    filter:drop-shadow(0 0 8px rgba(124,58,237,.45));
   }
-  /* ichki teskari aylanma halqa */
   .loadwrap::after{
     content:"";
     position:absolute; inset:20px;
     border-radius:50%;
-    background:conic-gradient(from 180deg, transparent 0deg, #7c45e0 80deg, transparent 200deg, transparent 360deg);
+    background:conic-gradient(from 180deg, transparent 0deg, #DB2777 80deg, transparent 200deg, transparent 360deg);
     -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
     mask:radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
     animation:_spRev 2.1s linear infinite;
-    filter:drop-shadow(0 0 6px rgba(124,69,224,.4));
+    filter:drop-shadow(0 0 6px rgba(219,39,119,.4));
   }
   @keyframes _sp{to{transform:rotate(360deg)}}
   @keyframes _spRev{to{transform:rotate(-360deg)}}
-  /* markazdagi pulslanuvchi emblema */
   .load-core{
     position:relative; z-index:2;
     width:66px;height:66px;border-radius:50%;
-    background:linear-gradient(135deg, rgba(255,255,255,.85), rgba(234,242,255,.7));
+    background:linear-gradient(135deg, rgba(255,255,255,.85), rgba(237,233,254,.7));
     border:1px solid var(--glass-line);
     display:flex;align-items:center;justify-content:center;
     font-size:30px;
-    box-shadow:0 8px 24px rgba(52,97,214,.28), inset 0 1px 2px rgba(255,255,255,.9);
+    box-shadow:0 8px 24px rgba(124,58,237,.28), inset 0 1px 2px rgba(255,255,255,.9);
     animation:corePulse 1.8s var(--ease) infinite;
   }
   @keyframes corePulse{
-    0%,100%{ transform:scale(1); box-shadow:0 8px 24px rgba(52,97,214,.28), 0 0 0 0 rgba(52,97,214,.35) }
-    50%{ transform:scale(1.08); box-shadow:0 10px 30px rgba(52,97,214,.4), 0 0 0 14px rgba(52,97,214,0) }
+    0%,100%{ transform:scale(1); box-shadow:0 8px 24px rgba(124,58,237,.28), 0 0 0 0 rgba(124,58,237,.35) }
+    50%{ transform:scale(1.08); box-shadow:0 10px 30px rgba(124,58,237,.4), 0 0 0 14px rgba(124,58,237,0) }
   }
-  /* orbital nuqta — halqa boʻylab uchadi */
   .load-orbit{
     position:absolute; inset:0;
     animation:_sp 2.8s linear infinite;
@@ -746,7 +767,6 @@
     0%,60%,100%{ transform:translateY(0); opacity:.5 }
     30%{ transform:translateY(-6px); opacity:1; color:var(--sapphire) }
   }
-  /* pastki progress nuqtalar */
   .load-dots{ display:flex;gap:7px; }
   .load-dots i{
     width:7px;height:7px;border-radius:50%;
@@ -761,7 +781,6 @@
     40%{ transform:scale(1.5); opacity:1 }
   }
 
-  /* ── Pastki statistika ── */
   #bottom-stats {
     width: calc(100% - 32px);
     max-width: 480px;
@@ -804,35 +823,32 @@
   }
   .bstat-val.correct { color: var(--ok); }
   .bstat-val.wrong   { color: var(--bad); }
-  .bstat-val.pct     { color: #7c45e0; }
+  .bstat-val.pct     { color: #DB2777; }
   @keyframes statBump{ 0%{transform:scale(1)} 45%{transform:scale(1.45)} 100%{transform:scale(1)} }
   .bstat-divider {
     width: 1px;
     height: 18px;
-    background: linear-gradient(180deg, transparent, rgba(52,97,214,0.28), transparent);
+    background: linear-gradient(180deg, transparent, rgba(124,58,237,0.28), transparent);
     flex-shrink: 0;
   }
   #bottom-stats{ margin: 12px auto 16px; }
 
-  /* ── Qoʻshimcha ── */
   #saveStatus { transition: all .3s ease; }
   #reviewArea .rv-row:hover { background: rgba(255,255,255,.9) !important; }
 
 
   /* ════ Telegram quiz-poll uslubidagi qoʻshimcha effektlar ════ */
-  /* Konfetti canvas — butun ekran ustida */
   #fxConfetti{
     position:fixed; inset:0; width:100%; height:100%;
     pointer-events:none; z-index:600; display:none;
   }
-  /* Toʻgʻri variant ustida sakrab chiquvchi ✓ badge */
   .option.correct .fx-check{
     position:absolute; right:16px; top:50%;
     width:30px; height:30px; border-radius:50%;
     background:var(--ok);
     color:#fff; font-size:16px; font-weight:900;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 14px rgba(15,169,104,.55);
+    box-shadow:0 4px 14px rgba(5,150,105,.55);
     transform:translateY(-50%) scale(0);
     animation:checkPop .5s var(--ease) .08s forwards;
     z-index:2;
@@ -842,15 +858,13 @@
     55%{ transform:translateY(-50%) scale(1.35) rotate(8deg); opacity:1 }
     100%{ transform:translateY(-50%) scale(1) rotate(0) }
   }
-  /* Toʻgʻri javobda yashil halqa "ping" — Telegram-vari */
   @keyframes okRing{
-    0%{ box-shadow:0 0 0 0 rgba(15,169,104,.7), 0 6px 22px rgba(15,169,104,0.28) }
-    50%{ box-shadow:0 0 0 14px rgba(15,169,104,.2), 0 6px 22px rgba(15,169,104,0.28) }
-    100%{ box-shadow:0 0 0 28px rgba(15,169,104,0), 0 6px 22px rgba(15,169,104,0.28) }
+    0%{ box-shadow:0 0 0 0 rgba(5,150,105,.7), 0 6px 22px rgba(5,150,105,0.28) }
+    50%{ box-shadow:0 0 0 14px rgba(5,150,105,.2), 0 6px 22px rgba(5,150,105,0.28) }
+    100%{ box-shadow:0 0 0 28px rgba(5,150,105,0), 0 6px 22px rgba(5,150,105,0.28) }
   }
   .option.correct.fx-ring{ animation: correctPop .6s var(--ease) both, okRing .85s ease-out .05s forwards; }
 
-  /* ── CSS Confetti keyframe ── */
   @keyframes _cfBurst{
     0%  { transform:translate(0,0) rotate(0deg) scale(1); opacity:1; }
     70% { opacity:.9; }
@@ -862,6 +876,7 @@
 </head>
 <body>
 <canvas id="fxConfetti"></canvas>
+<button class="theme-toggle" id="tbtn">🌙</button>
 
 <div id="scr-load">
   <div class="loadwrap">
@@ -971,7 +986,6 @@
     </div>
     <div class="result-msg" id="resultMsg"></div>
 
-    <!-- Vaqt va qo'shimcha statistika -->
     <div style="display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;justify-content:center">
       <div class="r-stat" style="min-width:80px">
         <div class="r-stat-val" id="rTime" style="font-size:1.1rem">—</div>
@@ -987,34 +1001,31 @@
       </div>
     </div>
 
-    <!-- Saqlash holati -->
     <div id="saveStatus" style="display:none;margin:10px 0;padding:10px 16px;
       border-radius:12px;font-size:.8rem;font-weight:600;
-      background:rgba(74,144,217,.08);border:1px solid rgba(74,144,217,.2);
-      color:rgba(44,74,122,.7)"></div>
+      background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);
+      color:rgba(91,85,112,.85)"></div>
 
-    <!-- Tugmalar -->
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
       <button class="restart-btn" onclick="restart()" 
         style="display:flex;align-items:center;gap:6px">
         🔄 Qayta boshlash
       </button>
       <button class="restart-btn" onclick="toggleReview()"
-        style="background:rgba(124,58,237,.12);border:1.5px solid rgba(124,58,237,.3);
-               color:#7c3aed;display:flex;align-items:center;gap:6px"
+        style="background:rgba(219,39,119,.12);border:1.5px solid rgba(219,39,119,.3);
+               color:#DB2777;display:flex;align-items:center;gap:6px"
         id="reviewBtn">
         📋 Tahlil ko'rish
       </button>
       <button class="restart-btn" onclick="goBack()"
-        style="background:rgba(74,144,217,.1);border:1.5px solid rgba(74,144,217,.25);
-               color:#2c6db5;display:flex;align-items:center;gap:6px">
+        style="background:rgba(124,58,237,.1);border:1.5px solid rgba(124,58,237,.25);
+               color:#7C3AED;display:flex;align-items:center;gap:6px">
         🏠 Chiqish
       </button>
     </div>
 
-    <!-- Javoblar tahlili -->
     <div id="reviewArea" style="display:none;margin-top:20px;text-align:left;width:100%">
-      <div style="font-size:.78rem;font-weight:700;color:rgba(44,74,122,.5);
+      <div style="font-size:.78rem;font-weight:700;color:rgba(91,85,112,.6);
         text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
         ♦ Javoblar tahlili
       </div>
@@ -1477,16 +1488,20 @@ function finishQuiz(){ askFinish(); }
 function restart(){ retryTest(); }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  /* ── Random background image ──────────────────────────
-     Rasmlar shu fayil bilan bir papkada: fon1.jpg ... fon10.jpg
-     Hozir 5 ta faol, keyinchalik BG_COUNT ni oshirish kifoya
-  ────────────────────────────────────────────────────── */
+  /* Nova Deck tema — index/dashboard bilan bir xil saqlangan tanlov */
   (function(){
-    const BG_COUNT = 5;
-    const BG_EXT   = 'jpg';
-    const n = Math.floor(Math.random() * BG_COUNT) + 1;
-    const url = 'fon' + n + '.' + BG_EXT;
-    document.documentElement.style.setProperty('--bg-image', 'url(' + url + ')');
+    const t = localStorage.getItem('tp_theme') || (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+    document.documentElement.setAttribute('data-theme', t);
+    const b = document.getElementById('tbtn');
+    if(b){
+      b.textContent = t==='dark'?'☀️':'🌙';
+      b.onclick = () => {
+        const cur = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+        document.documentElement.setAttribute('data-theme', cur);
+        localStorage.setItem('tp_theme', cur);
+        b.textContent = cur==='dark'?'☀️':'🌙';
+      };
+    }
   })();
   const pb=document.getElementById('prevBtn');if(pb)pb.onclick=()=>prevQ();
   const nb=document.getElementById('nextBtn');if(nb)nb.onclick=()=>nextQ();

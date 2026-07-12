@@ -5,195 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>TestPro</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
-:root{
-  --bg:#EEF1FF;--card:#ffffff;--text:#161327;--text2:#635f7a;--text3:#9a96b3;
-  --acc:#6C3FE8;--acc2:#C040C8;--acc3:#3fb6e8;--border:rgba(108,63,232,.12);
-  --shadow:0 4px 24px rgba(108,63,232,.09);--glass:rgba(255,255,255,.6);
-  --gold:#f5a623;--green:#12b76a;--red:#f04438;
-}
-[data-theme=dark]{
-  --bg:#0b0716;--card:#171029;--text:#f1ecff;--text2:#a79fc9;--text3:#6f6791;
-  --border:rgba(160,120,255,.16);--shadow:0 4px 28px rgba(0,0,0,.45);--glass:rgba(30,20,55,.55);
-}
-body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:var(--bg);color:var(--text);overflow-x:hidden;position:relative}
-body::before,body::after{content:'';position:fixed;z-index:-2;width:60vmax;height:60vmax;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none}
-body::before{background:radial-gradient(circle,var(--acc),transparent 65%);top:-20%;left:-15%;animation:drift1 22s ease-in-out infinite alternate}
-body::after{background:radial-gradient(circle,var(--acc3),transparent 65%);bottom:-25%;right:-15%;animation:drift2 26s ease-in-out infinite alternate}
-[data-theme=dark] body::before{opacity:.28}
-[data-theme=dark] body::after{opacity:.22}
-@keyframes drift1{from{transform:translate(0,0) scale(1)}to{transform:translate(8%,10%) scale(1.15)}}
-@keyframes drift2{from{transform:translate(0,0) scale(1)}to{transform:translate(-6%,-8%) scale(1.1)}}
-
-/* NAV */
-.nav{position:fixed;top:0;left:0;right:0;height:58px;z-index:500;
-  display:flex;align-items:center;justify-content:space-between;padding:0 1rem;
-  background:var(--glass);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--border)}
-.logo{font-family:'Unbounded',sans-serif;font-size:1.15rem;font-weight:900;cursor:pointer;
-  background:linear-gradient(135deg,var(--acc),var(--acc2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.nav-mid{display:flex;align-items:center;gap:.2rem;background:rgba(108,63,232,.06);padding:.25rem;border-radius:99px}
-.ntab{padding:.4rem .85rem;border-radius:99px;font-size:.8rem;font-weight:700;
-  cursor:pointer;border:none;font-family:inherit;background:transparent;color:var(--text2);transition:all .25s}
-.ntab.on{background:var(--card);color:var(--acc);box-shadow:0 2px 10px rgba(108,63,232,.15)}
-.nav-r{display:flex;align-items:center;gap:.4rem}
-.ibtn{width:36px;height:36px;border-radius:99px;border:none;cursor:pointer;font-size:.92rem;
-  background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;transition:all .25s}
-[data-theme=dark] .ibtn{background:rgba(255,255,255,.08)}
-.ibtn:hover{transform:rotate(15deg) scale(1.08)}
-.lbtn{padding:.45rem .95rem;border-radius:99px;font-size:.8rem;font-weight:700;
-  border:none;cursor:pointer;font-family:inherit;
-  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;transition:all .25s}
-.lbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(108,63,232,.4)}
-
-/* PAGE */
-.page{padding:70px 0 3rem;max-width:640px;margin:0 auto}
-
-/* GROUP */
-.grp{margin-bottom:2rem}
-.grp-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 1rem;margin-bottom:.8rem}
-.grp-l{display:flex;align-items:center;gap:.7rem}
-.grp-icon{width:48px;height:48px;border-radius:15px;background:var(--card);
-  box-shadow:var(--shadow);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;transition:transform .3s}
-.grp:hover .grp-icon{transform:rotate(-6deg) scale(1.05)}
-.grp-nm{font-size:.96rem;font-weight:800;color:var(--text)}
-.grp-ct{font-size:.72rem;color:var(--text3);font-weight:600;margin-top:.1rem}
-.see-all{font-size:.75rem;font-weight:700;color:var(--acc);cursor:pointer;border:none;
-  background:none;font-family:inherit;white-space:nowrap;padding:.32rem .8rem;
-  border-radius:99px;border:1.5px solid rgba(108,63,232,.25);transition:all .2s}
-.see-all:hover{background:rgba(108,63,232,.08);transform:translateX(2px)}
-
-/* SCROLL (card view) */
-.scroll{display:flex;gap:.8rem;overflow-x:auto;padding:0 1rem .6rem;
-  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
-.scroll::-webkit-scrollbar{display:none}
-
-/* CARD */
-.card{min-width:180px;max-width:180px;flex-shrink:0;scroll-snap-align:start;
-  background:var(--card);border-radius:20px;padding:1rem;
-  border:1.5px solid var(--border);box-shadow:var(--shadow);position:relative;z-index:0;overflow:visible;
-  cursor:pointer;transition:transform .25s,box-shadow .25s;display:flex;flex-direction:column;
-  opacity:0;animation:cardIn .5s ease forwards}
-@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-.card:hover{transform:translateY(-5px);box-shadow:0 14px 32px rgba(108,63,232,.22)}
-.card-icon{width:46px;height:46px;border-radius:13px;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;font-size:1.45rem;margin-bottom:.6rem}
-.card-title{font-size:.85rem;font-weight:800;color:var(--text);margin-bottom:.15rem;
-  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
-  -webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
-.card-author{font-size:.68rem;color:var(--text3);margin-bottom:.45rem;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chips{display:flex;gap:.28rem;flex-wrap:wrap;margin-bottom:.6rem}
-.ch{display:inline-flex;align-items:center;padding:.15rem .42rem;border-radius:99px;
-  font-size:.64rem;font-weight:700;background:rgba(108,63,232,.08);color:var(--acc);
-  border:1px solid rgba(108,63,232,.12)}
-[data-theme=dark] .ch{background:rgba(108,63,232,.22)}
-.card-btn{display:block;width:100%;padding:.6rem;border-radius:11px;border:none;
-  cursor:pointer;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
-  font-family:inherit;font-size:.8rem;font-weight:700;text-align:center;
-  transition:all .2s;margin-top:auto}
-.card-btn:hover{box-shadow:0 6px 16px rgba(108,63,232,.4)}
-
-/* LIST VIEW (barchasi bosilganda) */
-.list-view{padding:0 1rem}
-.li{background:var(--card);border:1.5px solid var(--border);border-radius:16px;
-  padding:.8rem .95rem;margin-bottom:.5rem;
-  display:flex;align-items:center;gap:.65rem;cursor:pointer;transition:all .22s;
-  opacity:0;animation:cardIn .4s ease forwards}
-.li:hover{border-color:rgba(108,63,232,.35);transform:translateX(4px);box-shadow:0 6px 18px rgba(108,63,232,.13)}
-.li-ico{width:40px;height:40px;border-radius:12px;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
-.li-info{flex:1;min-width:0}
-.li-nm{font-size:.84rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:.1rem}
-.li-meta{font-size:.67rem;color:var(--text3);display:flex;gap:.35rem;flex-wrap:wrap}
-.li-btn{padding:.4rem .85rem;border-radius:11px;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
-  font-family:inherit;font-size:.72rem;font-weight:700;white-space:nowrap;flex-shrink:0;transition:transform .2s}
-.li-btn:hover{transform:scale(1.08)}
-
-/* BACK BTN */
-.back-btn{display:flex;align-items:center;gap:.4rem;padding:.5rem .8rem;margin:0 1rem 1rem;
-  border-radius:12px;border:1.5px solid var(--border);background:var(--card);
-  cursor:pointer;font-size:.82rem;font-weight:700;color:var(--text2);
-  width:fit-content;transition:all .2s}
-.back-btn:hover{border-color:rgba(108,63,232,.35);color:var(--acc);transform:translateX(-3px)}
-
-/* HERO */
-.hero{text-align:center;padding:3.2rem 1.5rem}
-.hero-h{font-family:'Unbounded',sans-serif;font-size:clamp(1.6rem,5vw,2.5rem);
-  font-weight:900;line-height:1.1;margin-bottom:.85rem}
-.hero-h span{background:linear-gradient(135deg,var(--acc),var(--acc2) 60%,var(--acc3));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  background-size:200% auto;animation:gradShift 6s ease-in-out infinite}
-@keyframes gradShift{0%,100%{background-position:0% center}50%{background-position:100% center}}
-.hero-p{font-size:.88rem;color:var(--text2);max-width:380px;margin:0 auto 1.5rem;line-height:1.6}
-.hero-btn{padding:.78rem 2rem;border-radius:13px;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
-  font-family:inherit;font-size:.9rem;font-weight:700;transition:all .22s;box-shadow:0 6px 18px rgba(108,63,232,.28)}
-.hero-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,63,232,.35)}
-
-/* CTA */
-.cta{margin:1rem 1rem 0;background:linear-gradient(135deg,var(--acc),var(--acc2) 60%,var(--acc3));
-  border-radius:20px;padding:1.5rem;text-align:center;position:relative;overflow:hidden}
-.cta::before{content:'';position:absolute;width:200px;height:200px;border-radius:50%;
-  background:rgba(255,255,255,.12);top:-80px;right:-60px;animation:ctaFloat 8s ease-in-out infinite}
-@keyframes ctaFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(20px) scale(1.1)}}
-.cta-h{font-family:'Unbounded',sans-serif;font-size:1.05rem;font-weight:900;color:#fff;margin-bottom:.5rem;position:relative}
-.cta-p{font-size:.78rem;color:rgba(255,255,255,.85);margin-bottom:1rem;position:relative}
-.cta-btn{padding:.65rem 1.6rem;border-radius:11px;border:none;cursor:pointer;position:relative;
-  background:#fff;color:var(--acc);font-weight:800;font-size:.84rem;font-family:inherit;transition:all .2s}
-.cta-btn:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 10px 24px rgba(0,0,0,.25)}
-
-/* LOADER */
-.sp{width:28px;height:28px;border:3px solid rgba(108,63,232,.15);border-top-color:var(--acc);
-  border-radius:50%;animation:spin .7s linear infinite;margin:2.5rem auto}
-@keyframes spin{to{transform:rotate(360deg)}}
-.emp{text-align:center;padding:2rem 1rem;color:var(--text3);font-size:.82rem}
-.err{text-align:center;padding:1.5rem;color:var(--red);font-size:.82rem}
-
-/* ══════════════════════════════════════════════════════════
-   GLOW CARD + AUTO-CAROUSEL
-   — Aylanuvchi chiroq effekti faqat kartaning ingichka chekkasi
-     bo'ylab ko'rinadi (conic-gradientning tor segmenti), qolgan
-     qismi to'liq shaffof — shu sabab orqa fonda to'rtburchak
-     "bloklar" chiqmaydi.
-   — Karusel esa scrollLeft orqali (JS bilan) siljiydi, CSS
-     animatsiya emas — shuning uchun layout/reflow yo'q.
-   ══════════════════════════════════════════════════════════ */
-.card{ position:relative; z-index:0; overflow:visible; }
-.card.glow{ isolation:isolate; overflow:hidden; }
-.card.glow::before{
-  content:'';
-  position:absolute;
-  z-index:-1;
-  top:50%;left:50%;width:340px;height:340px;margin:-170px 0 0 -170px;
-  background:conic-gradient(from 0deg,
-    transparent 0%, transparent 78%, var(--acc) 88%, var(--acc2) 94%, var(--acc3) 98%, transparent 100%);
-  animation:cardSpin 3.5s linear infinite;
-  will-change:transform;
-}
-.card.glow::after{
-  content:'';
-  position:absolute; inset:0; z-index:-1;
-  background:var(--card);
-  border-radius:18.5px;
-  margin:2px;
-}
-@keyframes cardSpin{ to{ transform:rotate(360deg); } }
-@media (prefers-reduced-motion:reduce){ .card.glow::before{ animation:none; } }
-
-.scroll{ padding-top:6px; }
-.scroll.carousel{ scroll-behavior:auto; scroll-snap-type:none; }
-
-</style>
+<link href="css/style.css" rel="stylesheet"/>
 </head>
 <body>
 
+<div class="grain"></div>
+<div class="mesh-extra"></div>
+
 <nav class="nav">
-  <div class="logo" onclick="goTo('index.html')">TestPro</div>
+  <div class="logo" onclick="goTo('index.html')">
+    <div class="logo-mk"><span>🎓</span></div>
+    <span class="logo-tx">TestPro</span>
+  </div>
   <div class="nav-mid">
     <button class="ntab on">Testlar</button>
     <button class="ntab" onclick="goTo('dashboard.html')">Dashboard</button>
@@ -205,172 +28,72 @@ body::after{background:radial-gradient(circle,var(--acc3),transparent 65%);botto
 </nav>
 
 <div class="page">
-  <div id="content"><div class="sp"></div></div>
+
+  <div class="hero">
+    <div class="hero-badge"><i></i> Interaktiv testlar platformasi</div>
+    <div class="hero-h">Bilimingizni<br/><span class="grad">yangicha his qiling</span></div>
+    <p class="hero-p">O'nlab fandan tayyor testlar, aniq natijalar va zamonaviy interfeys — barchasi bir joyda.</p>
+    <div class="hero-actions">
+      <button class="hero-btn" onclick="document.getElementById('content').scrollIntoView({behavior:'smooth'})">Testlarni ko'rish →</button>
+      <button class="hero-btn2" onclick="window.open('https://t.me/Quizmarkerbot?start=webapp','_blank')">O'z testimni yarataman</button>
+    </div>
+  </div>
+
+  <div class="statstrip">
+    <div class="stat-item"><div class="stat-v" id="stat-subj">0</div><div class="stat-l">Fan</div></div>
+    <div class="stat-item"><div class="stat-v" id="stat-tests">0</div><div class="stat-l">Test</div></div>
+    <div class="stat-item"><div class="stat-v" id="stat-solved">0</div><div class="stat-l">Yechilgan</div></div>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div id="content"><div class="sp-wrap"><div class="sp"><i></i><i></i></div></div></div>
+
   <div class="cta" id="cta" style="display:none">
     <div class="cta-h">O'z testingizni yarating!</div>
     <p class="cta-p">Bir necha daqiqada professional test yarating va do'stlaringiz bilan ulashing</p>
     <button class="cta-btn" onclick="window.open('https://t.me/Quizmarkerbot?start=webapp','_blank')">Boshlash →</button>
   </div>
+
+</div>
+
+<!-- KO'RISH (PREVIEW) MODAL -->
+<div class="book-modal-bg" id="book-modal-bg">
+  <div class="book-modal">
+    <div class="book-cover">
+      <button class="book-close" onclick="closeBookModal()">✕</button>
+      <div class="book-badge" id="book-badge">Umumiy</div>
+      <div class="book-cover-title" id="book-cover-title">...</div>
+    </div>
+    <div class="book-body">
+      <div class="book-title" id="book-title">...</div>
+      <div class="book-author" id="book-author">...</div>
+      <p class="book-desc" id="book-desc-text"></p>
+      <div class="book-meta">
+        <div class="b-meta"><div class="b-ico">📝</div><div class="b-val" id="book-qcount">—</div><div class="b-lbl">Savol</div></div>
+        <div class="b-meta"><div class="b-ico">⏱</div><div class="b-val" id="book-time">—</div><div class="b-lbl">Vaqt</div></div>
+        <div class="b-meta"><div class="b-ico">👁</div><div class="b-val" id="book-solves">—</div><div class="b-lbl">Yechilgan</div></div>
+      </div>
+      <button class="book-start-btn" id="book-start-btn">Sinovni boshlash →</button>
+    </div>
+  </div>
 </div>
 
 <script src="js/api.js"></script>
+<script src="js/common.js"></script>
 <script>
-const TH={
-  get(){return localStorage.getItem('tp_theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')},
-  set(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('tp_theme',t);
-    const b=document.getElementById('tbtn');if(b)b.textContent=t==='dark'?'☀️':'🌙'},
-  toggle(){this.set(this.get()==='dark'?'light':'dark')}
-};
-TH.set(TH.get());
-document.getElementById('tbtn').onclick=()=>TH.toggle();
-
 AuthHelpers.getCurrentUser().then(u=>{
   if(u){const b=document.getElementById('auth-btn');b.textContent='Dashboard';b.onclick=()=>goTo('dashboard.html');}
 }).catch(()=>{});
 
-const ICON={english:'🇬🇧',arabic:'🕌',russian:'🇷🇺',turkish:'🇹🇷',math:'🧮',it:'💻',science:'🔬',religion:'📖',other:'📚'};
-
-/* ══════════════════════════════════════════════════════════
-   INFINITE CAROUSEL — professional rAF-based engine
-   ────────────────────────────────────────────────────────
-   Nima uchun setInterval+scrollBy o'rniga requestAnimationFrame?
-   - scrollBy({behavior:'smooth'}) brauzer ichki easing'iga bog'liq
-     bo'lib, tugash vaqti kafolatlanmaydi -> setTimeout bilan
-     sinxronlashda tebranish (jitter) chiqadi.
-   - rAF esa har video-freymda (~16.6ms) bitta piksel qadam qo'yadi:
-     harakat butunlay bizning nazoratimizda, uzluksiz va freym-aniq.
-
-   Cheksiz loop mexanizmi:
-   - Har bir ro'yxat 3 marta ketma-ket joylanadi: [A][A][A]
-   - Boshlanishda scrollLeft o'rtadagi "A" blokning boshiga
-     qo'yiladi -> ikki tomonga ham cheksiz joy bor.
-   - Har freymda scrollLeft o'sib boradi; o'rta blokdan bir bloklik
-     masofaga chiqib ketilganda (blockWidth), scrollLeft'dan yoki
-     unga bitta blockWidth sezilmas qo'shiladi/ayiriladi — bu aynan
-     shu freymda amalga oshgani uchun ko'z hech qanday sakrashni
-     ilg'ay olmaydi (elementlar bir xil, faqat referens nuqta
-     almashadi).
-   ══════════════════════════════════════════════════════════ */
-const Carousel = (()=>{
-  const rig = new Set();
-  let rafId = null;
-  let lastT = null;
-
-  const SPEED         = 34;   // piksel/sekund — o'qish uchun qulay tezlik
-  const RESUME_DELAY  = 2200; // foydalanuvchi teginishni to'xtatgach kutish (ms)
-
-  function cloneForLoop(el){
-    if (el._ready) return;
-    const originals = Array.from(el.children);
-    if (originals.length < 2) return;
-    for (let rep = 0; rep < 2; rep++){
-      for (const c of originals){
-        const clone = c.cloneNode(true);
-        clone.onclick = c.onclick;
-        clone.setAttribute('aria-hidden','true');
-        clone.tabIndex = -1;
-        el.appendChild(clone);
-      }
-    }
-    el._setCount = originals.length;
-    el._ready = true;
-  }
-
-  function measure(el){
-    const n = el._setCount;
-    if (!n || el.children.length < n*2+1) return false;
-    const bw = el.children[n].offsetLeft - el.children[0].offsetLeft;
-    if (bw <= 0) return false;
-    el._blockWidth = bw;
-    if (!el._initialized){
-      el.scrollLeft = bw + (el.scrollLeft % bw || 0);
-      el._initialized = true;
-    }
-    return true;
-  }
-
-  function normalize(el){
-    const bw = el._blockWidth;
-    if (!bw) return;
-    // scrollLeft'ni doim [bw*0.5 , bw*1.5) oralig'ida ushlab turamiz —
-    // native scroll-snap yoki drag-momentum katta sakrash qilsa ham
-    // (masalan flick gesture), keyingi freymda joyida tiklanadi.
-    while (el.scrollLeft < bw * 0.5) el.scrollLeft += bw;
-    while (el.scrollLeft >= bw * 1.5) el.scrollLeft -= bw;
-  }
-
-  function frame(t){
-    rafId = requestAnimationFrame(frame);
-    if (lastT == null){ lastT = t; return; }
-    const dt = Math.min(64, t - lastT); // sakrashlarni cheklab qo'yamiz (tab yashiringanda va h.k.)
-    lastT = t;
-
-    for (const el of rig){
-      if (!el.isConnected){ rig.delete(el); continue; }
-      if (el._hover || el._dragging) continue;
-      if (el._resumeAt && t < el._resumeAt) continue;
-
-      if (!el._blockWidth && !measure(el)) continue;
-
-      el.scrollLeft += (SPEED * dt) / 1000;
-      normalize(el);
-    }
-  }
-
-  function pauseInteraction(el){
-    el._resumeAt = performance.now() + RESUME_DELAY;
-  }
-
-  function register(el){
-    cloneForLoop(el);
-    el._blockWidth = 0;
-    el._initialized = false;
-
-    // Foydalanuvchi bilan aloqa: sichqoncha ustida to'xtaydi,
-    // teginish/drag paytida to'xtaydi, qo'yib yuborgach biroz
-    // kutib qayta boshlaydi — bu tabiiy va professional tuyuladi.
-    el.addEventListener('pointerenter', ()=>{ el._hover = true; }, {passive:true});
-    el.addEventListener('pointerleave', ()=>{ el._hover = false; pauseInteraction(el); }, {passive:true});
-    el.addEventListener('pointerdown',  ()=>{ el._dragging = true; }, {passive:true});
-    window.addEventListener('pointerup', ()=>{
-      if (el._dragging){ el._dragging = false; pauseInteraction(el); }
-    }, {passive:true});
-    el.addEventListener('wheel',      ()=>pauseInteraction(el), {passive:true});
-    el.addEventListener('touchstart', ()=>{ el._dragging = true; }, {passive:true});
-    el.addEventListener('touchend',   ()=>{ el._dragging = false; pauseInteraction(el); }, {passive:true});
-
-    rig.add(el);
-
-    // Kartalar/fontlar joylashguncha bir necha freym kutamiz —
-    // shrift almashinuvi (font-display:swap) layout'ni keyinroq
-    // o'zgartirishi mumkin, shu sabab bitta rAF yetarli emas.
-    let tries = 0;
-    (function tryMeasure(){
-      if (measure(el) || ++tries > 20) return;
-      requestAnimationFrame(tryMeasure);
-    })();
-
-    if (rafId == null) rafId = requestAnimationFrame(frame);
-  }
-
-  // Oyna o'lchami o'zgarsa (mobil rotatsiya, splitview) blok
-  // kengligini qayta hisoblaymiz — aks holda joy noto'g'ri bo'lib qoladi.
-  const ro = new ResizeObserver(()=>{
-    for (const el of rig){ el._blockWidth = 0; el._initialized = false; }
-  });
-  window.addEventListener('resize', ()=>{
-    for (const el of rig){ el._blockWidth = 0; el._initialized = false; }
-  });
-
-  return { register, observeResize: (el)=>ro.observe(el) };
-  return { register };
-})();
-
+/* Carousel, TH, esc, toast, ICON, animateCount, spotlight-hover —
+   barchasi js/common.js faylida aniqlangan (yuqorida ulangan). */
 
 /* ── Karta qurish ── */
-function buildCard(t, icon){
+function buildCard(t, icon, idx){
   const c=document.createElement('div');
-  c.className='card glow';
+  c.className='card';
+  c.style.animationDelay=(Math.min(idx,8)*0.05)+'s';
   c.onclick=()=>goTo('test.html?id='+(t.test_id||t.id));
   c.innerHTML=`
     <div class="card-icon">${icon}</div>
@@ -380,17 +103,22 @@ function buildCard(t, icon){
       <span class="ch">📝 ${t.question_count||0}</span>
       <span class="ch">👁 ${t.solve_count||0}</span>
       ${t.time_limit?`<span class="ch">⏱ ${t.time_limit}daq</span>`:''}
-      ${t.avg_score?`<span class="ch">⭐${Math.round(t.avg_score)}%</span>`:''}
+      ${t.avg_score?`<span class="ch gold">⭐${Math.round(t.avg_score)}%</span>`:''}
     </div>
-    <button class="card-btn">Boshlash →</button>`;
+    <div class="card-actions">
+      <button class="card-view" title="Ko'rish">👁</button>
+      <button class="card-btn">Boshlash →</button>
+    </div>`;
+  c.querySelector('.card-view').onclick=(e)=>{e.stopPropagation();openBookPreview(t.test_id||t.id,t);};
   return c;
 }
 
 /* ── Ro'yxat elementi qurish ── */
-function buildListItem(t, icon){
+function buildListItem(t, icon, idx){
   const el=document.createElement('div');
   el.className='li';
-  el.onclick=()=>goTo('test.html?id='+(t.test_id||t.id));
+  el.style.animationDelay=(Math.min(idx,10)*0.04)+'s';
+  el.onclick=()=>openBookPreview(t.test_id||t.id,t);
   el.innerHTML=`
     <div class="li-ico">${icon}</div>
     <div class="li-info">
@@ -402,8 +130,8 @@ function buildListItem(t, icon){
         <span>${esc(t.creator_name||'Anonim')}</span>
       </div>
     </div>
-    <button class="li-btn" onclick="event.stopPropagation();goTo('test.html?id='+(this.dataset.id))">▶️</button>`;
-  el.querySelector('.li-btn').dataset.id=t.test_id||t.id;
+    <button class="li-btn">▶</button>`;
+  el.querySelector('.li-btn').onclick=(e)=>{e.stopPropagation();goTo('test.html?id='+(t.test_id||t.id));};
   return el;
 }
 
@@ -433,7 +161,7 @@ function showGroupList(subj, arr, icon, sub){
 
   const list=document.createElement('div');
   list.className='list-view';
-  arr.forEach(t=>list.appendChild(buildListItem(t,icon)));
+  arr.forEach((t,i)=>list.appendChild(buildListItem(t,icon,i)));
   wrap.appendChild(list);
 }
 
@@ -469,11 +197,35 @@ function renderGroups(pub){
 
     const scroll=document.createElement('div');
     scroll.className='scroll carousel';
-    arr.forEach(t=>scroll.appendChild(buildCard(t,icon)));
+    arr.forEach((t,i)=>scroll.appendChild(buildCard(t,icon,i)));
     g.appendChild(scroll);
 
     wrap.appendChild(g);
     Carousel.register(scroll);
+  });
+
+  document.getElementById('stat-subj').textContent = Object.keys(grps).length;
+}
+
+/* ── Filter chiplarini render qilish ── */
+function renderFilters(pub){
+  const wrap=document.getElementById('filters');
+  const grps={};
+  pub.forEach(t=>{const k=t.category||t.subject||'other';if(!grps[k])grps[k]=[];grps[k].push(t);});
+  const cats=[{k:null,label:'Barchasi',icon:'✨'}].concat(
+    Object.keys(grps).map(k=>({k,label:getSubject(k).label,icon:ICON[k]||getIco(k)||'📚'}))
+  );
+  wrap.innerHTML='';
+  cats.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='fchip'+(c.k===null?' on':'');
+    b.innerHTML=`${c.icon} ${esc(c.label)}`;
+    b.onclick=()=>{
+      wrap.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      renderGroups(c.k===null ? pub : pub.filter(t=>(t.category||t.subject||'other')===c.k));
+    };
+    wrap.appendChild(b);
   });
 }
 
@@ -487,13 +239,19 @@ function renderGroups(pub){
 
     if(!pub.length){
       wrap.innerHTML=`<div class="hero">
-        <div class="hero-h">TestPro ga<br/><span>xush kelibsiz!</span></div>
+        <div class="hero-h">TestPro ga<br/><span class="grad">xush kelibsiz!</span></div>
         <p class="hero-p">Hozircha ommaviy test mavjud emas. Birinchi bo'ling!</p>
         <button class="hero-btn" onclick="window.open('https://t.me/Quizmarkerbot?start=webapp','_blank')">Test yaratish →</button>
       </div>`;
       return;
     }
+
+    renderFilters(pub);
     renderGroups(pub);
+
+    const totalSolved = pub.reduce((s,t)=>s+(t.solve_count||0),0);
+    animateCount(document.getElementById('stat-tests'), pub.length);
+    animateCount(document.getElementById('stat-solved'), totalSolved);
   }catch(e){
     wrap.innerHTML=`<div class="err">❌ Xatolik: ${e.message}</div>`;
   }
