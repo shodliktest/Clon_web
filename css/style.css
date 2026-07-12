@@ -238,31 +238,51 @@ body::after{background:radial-gradient(circle,var(--p2),transparent 68%);bottom:
 .scroll::-webkit-scrollbar{display:none}
 .scroll.carousel{scroll-behavior:auto;scroll-snap-type:none}
 
-/* ── CARD — spotlight hover + yonib aylanuvchi chegara ── */
+/* ── CARD — spotlight hover + yonib aylanuvchi chegara ──
+   MUHIM: glow-halqa endi konteyner ichida mask bilan faqat
+   "chekka" (ring) sifatida chiqariladi va butun karta yuzasini
+   qoplab, atrofida aylanadi — natijada har doim ingichka, tekis
+   aylanuvchi chiziq ko'rinadi, static uchburchak/blok chiqmaydi. ── */
 .card{
   --mx:50%; --my:50%;
   min-width:192px;max-width:192px;flex-shrink:0;scroll-snap-align:start;
   background:var(--card);border-radius:22px;padding:1.1rem;
-  border:1px solid var(--border);box-shadow:var(--shadow-sm);position:relative;z-index:0;overflow:hidden;
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);position:relative;overflow:visible;
   cursor:pointer;transition:box-shadow .3s;isolation:isolate;
   display:flex;flex-direction:column;opacity:0;animation:cardIn .55s cubic-bezier(.2,.8,.2,1) forwards}
 @keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .card::before{
   content:'';position:absolute;inset:0;z-index:0;opacity:0;pointer-events:none;transition:opacity .35s;
   background:radial-gradient(320px circle at var(--mx) var(--my),rgba(124,58,237,.14),transparent 70%);
+  border-radius:inherit;
 }
 .card:hover{box-shadow:var(--shadow-lg)}
 .card:hover::before{opacity:1}
 .card>*{position:relative;z-index:1}
 .card::after{
-  content:'';position:absolute;z-index:-1;
-  top:50%;left:50%;width:360px;height:360px;margin:-180px 0 0 -180px;
-  background:conic-gradient(from 0deg,
-    transparent 0%, transparent 78%, var(--p1) 88%, var(--p2) 94%, var(--p3) 98%, transparent 100%);
-  animation:cardGlow 3.6s linear infinite;will-change:transform;
+  content:'';position:absolute;inset:-1.5px;z-index:2;pointer-events:none;
+  border-radius:inherit;padding:1.5px;
+  background:conic-gradient(from var(--glowAngle,0deg),
+    transparent 0deg, transparent 250deg, var(--p1) 300deg, var(--p2) 330deg, var(--p3) 350deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:cardGlow 3.6s linear infinite;
 }
-@keyframes cardGlow{ to{ transform:rotate(360deg); } }
+@property --glowAngle{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
+@keyframes cardGlow{ to{ --glowAngle:360deg; } }
 @media (prefers-reduced-motion:reduce){ .card::after{ animation:none; } }
+@supports not (mask-composite:exclude){
+  .card::after{
+    background:linear-gradient(120deg, transparent, var(--p2), transparent);
+    background-size:220% 100%;
+    -webkit-mask:none; mask:none;
+    animation:cardGlowFallback 3s linear infinite;
+    opacity:.55;
+  }
+  @keyframes cardGlowFallback{ to{ background-position:220% 0; } }
+}
 .card-icon{width:48px;height:48px;border-radius:14px;background:var(--bg-deep);
   display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:.7rem;
   transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
@@ -463,5 +483,51 @@ body::after{background:radial-gradient(circle,var(--p2),transparent 68%);bottom:
 .mt-1{margin-top:.5rem}.mt-2{margin-top:1rem}.mb-1{margin-bottom:.5rem}.mb-2{margin-bottom:1rem}
 .text-center{text-align:center}
 .w-full{width:100%}
+
+/* ── GREETING BLOCK (dashboard/profile) ── */
+.greet{padding:.9rem 0 .7rem;display:flex;align-items:center;justify-content:space-between;
+  animation:riseIn .6s cubic-bezier(.2,.8,.2,1) both}
+.greet-h{font-family:'Unbounded',sans-serif;font-size:1.15rem;font-weight:900;margin-bottom:.15rem}
+.greet-p{font-size:.78rem;color:var(--text3)}
+.greet-orb{width:44px;height:44px;border-radius:14px;flex-shrink:0;
+  background:conic-gradient(from 180deg,var(--p1),var(--p2),var(--p3),var(--p1));
+  animation:greetSpin 8s linear infinite;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;position:relative}
+@keyframes greetSpin{to{transform:rotate(360deg)}}
+.greet-orb::after{content:'';position:absolute;inset:3px;border-radius:11px;background:var(--card)}
+.greet-orb span{position:relative;z-index:1}
+
+/* ── STAT BOXES (dashboard/profile/admin/history) ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin:1rem 0 1.6rem}
+.sb{background:var(--card);border-radius:17px;padding:1rem .6rem;text-align:center;
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  animation:cardIn .5s cubic-bezier(.2,.8,.2,1) both}
+.sb:hover{transform:translateY(-4px)}
+.sb::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--p1),var(--p2),var(--p3))}
+.sv{font-family:'Unbounded',sans-serif;font-size:1.4rem;font-weight:900;
+  background:linear-gradient(120deg,var(--p1),var(--p2));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.sl{font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:800;margin-top:.18rem}
+
+/* ── QUICK ACTIONS (dashboard) ── */
+.qa-wrap{display:flex;flex-direction:column;gap:.55rem}
+.qa{display:flex;align-items:center;justify-content:center;gap:.45rem;width:100%;
+  padding:.85rem;border-radius:15px;font-family:inherit;font-size:.86rem;font-weight:800;
+  cursor:pointer;border:none;transition:all .25s}
+.qa-p{color:#fff;background:linear-gradient(120deg,var(--p1),var(--p2))}
+.qa-p:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(124,58,237,.4)}
+.qa-s{background:var(--card);border:1px solid var(--border);color:var(--text2)}
+.qa-s:hover{border-color:var(--p1);color:var(--p1);transform:translateY(-2px)}
+
+/* ── SECTION HEADER (dashboard/profile/history) ── */
+.sec{margin-bottom:1.7rem}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+.sec-t{font-size:.94rem;font-weight:800;display:flex;align-items:center;gap:.35rem}
+.sec-new{padding:.36rem .85rem;border-radius:99px;font-size:.76rem;font-weight:800;
+  cursor:pointer;border:none;font-family:inherit;color:#fff;
+  background:linear-gradient(120deg,var(--p1),var(--p2));transition:all .25s}
+.sec-new:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(124,58,237,.38)}
 
 @media(min-width:640px){.hero-h{font-size:3.1rem}}
