@@ -1,0 +1,91 @@
+/* ══════════════════════════════════════════════════════════════
+   TESTPRO — PASTKI NAVBAR (Magic Navigation)
+   Barcha ichki sahifalarda umumiy: index, dashboard, create,
+   history, profile, admin. js/bottomnav.js orqali render qilinadi.
+   ══════════════════════════════════════════════════════════════ */
+
+body.tp-has-bn{padding-bottom:104px}
+
+#tp-bn-wrap{
+  position:fixed;left:0;right:0;bottom:0;z-index:900;
+  display:flex;justify-content:center;
+  padding:0 .7rem calc(.6rem + env(safe-area-inset-bottom,0px));
+  pointer-events:none;
+}
+#tp-bn-wrap *{box-sizing:border-box}
+
+.tp-bn{
+  pointer-events:auto;
+  position:relative;
+  display:flex;align-items:center;justify-content:space-around;
+  width:100%;max-width:520px;
+  height:64px;padding:0 .35rem;
+  background:var(--glass);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow-lg,var(--shadow,0 10px 30px rgba(0,0,0,.18)));
+}
+
+.tp-bn-item{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:.15rem;
+  flex:1 1 0;
+  height:100%;
+  background:none;border:none;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  color:var(--text3);
+  transition:color .25s ease;
+}
+
+.tp-bn-ico{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1),
+             background .3s ease, border-color .3s ease, box-shadow .3s ease;
+  border:3px solid transparent;
+}
+.tp-bn-ico svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s ease}
+
+.tp-bn-lbl{
+  font-size:.6rem;font-weight:700;letter-spacing:.01em;
+  opacity:0;transform:translateY(2px);
+  height:0;overflow:hidden;
+  transition:opacity .25s ease, transform .25s ease, height .25s ease;
+}
+
+.tp-bn-item.on{color:var(--p1,var(--acc,#7C3AED))}
+.tp-bn-item.on .tp-bn-ico{
+  transform:translateY(-20px) scale(1.08);
+  background:linear-gradient(135deg,var(--p1,var(--acc,#7C3AED)),var(--p2,var(--acc2,#DB2777)));
+  border-color:var(--card);
+  box-shadow:0 8px 20px rgba(124,58,237,.45), 0 0 0 1px var(--border);
+  animation:tpBnPop .42s cubic-bezier(.34,1.56,.64,1);
+}
+.tp-bn-item.on .tp-bn-ico svg{stroke:#fff}
+.tp-bn-item.on .tp-bn-lbl{opacity:1;transform:translateY(-14px);height:12px}
+
+@keyframes tpBnPop{
+  0%{transform:translateY(0) scale(1)}
+  45%{transform:translateY(-26px) scale(1.18)}
+  100%{transform:translateY(-20px) scale(1.08)}
+}
+
+.tp-bn-item.main .tp-bn-ico{
+  width:44px;height:44px;
+  background:linear-gradient(135deg,var(--p3,var(--acc3,#2DD4BF)),var(--p1,var(--acc,#7C3AED)));
+  color:#fff;
+}
+.tp-bn-item.main .tp-bn-ico svg{stroke:#fff}
+.tp-bn-item.main:not(.on) .tp-bn-ico{transform:translateY(-8px);box-shadow:0 6px 16px rgba(124,58,237,.35)}
+.tp-bn-item.main.on .tp-bn-ico{transform:translateY(-24px) scale(1.1)}
+
+.tp-bn-item:active .tp-bn-ico{filter:brightness(.94)}
+
+/* ── SAHIFA SURISH (SWIPE) TRANZITSIYASI ── */
+#tp-slide-wrap{
+  transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .32s ease;
+  will-change:transform, opacity;
+}
