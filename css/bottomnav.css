@@ -1,7 +1,12 @@
 /* ══════════════════════════════════════════════════════════════
-   TESTPRO — PASTKI NAVBAR (Magic Navigation)
+   TESTPRO — PASTKI NAVBAR (Magic Navigation, haqiqiy "notch" bilan)
    Barcha ichki sahifalarda umumiy: index, dashboard, create,
    history, profile, admin. js/bottomnav.js orqali render qilinadi.
+   Doira pozitsiyasi (--tpnx) va sakrash animatsiyasi butunlay
+   JS (requestAnimationFrame) orqali boshqariladi — shu sabab
+   panelning "kesmasi" va suzuvchi doira har doim bir xil pikselda
+   turadi (sinxron), CSS custom-property qo'llab-quvvatlanishiga
+   bog'liq bo'lmaydi.
    ══════════════════════════════════════════════════════════════ */
 
 body.tp-has-bn{padding-bottom:104px}
@@ -9,7 +14,7 @@ body.tp-has-bn{padding-bottom:104px}
 #tp-bn-wrap{
   position:fixed;left:0;right:0;bottom:0;z-index:900;
   display:flex;justify-content:center;
-  padding:0 .7rem calc(.6rem + env(safe-area-inset-bottom,0px));
+  padding:0 .7rem calc(.55rem + env(safe-area-inset-bottom,0px));
   pointer-events:none;
 }
 #tp-bn-wrap *{box-sizing:border-box}
@@ -17,75 +22,66 @@ body.tp-has-bn{padding-bottom:104px}
 .tp-bn{
   pointer-events:auto;
   position:relative;
-  display:flex;align-items:center;justify-content:space-around;
   width:100%;max-width:520px;
-  height:64px;padding:0 .35rem;
-  background:var(--glass);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
-  border:1px solid var(--border);
+  height:64px;
+  --tpnx:60px; /* JS har frame'da yangilaydi */
+  --tpr:32px;
+}
+
+/* ── Rangli panel: yuqori chetida sirg'anib yuruvchi doira "kesmasi" bor ── */
+.tp-bn-surface{
+  position:absolute;inset:0;
   border-radius:24px;
+  background:linear-gradient(135deg,var(--p1,var(--acc,#7C3AED)),var(--p2,var(--acc2,#DB2777)));
   box-shadow:var(--shadow-lg,var(--shadow,0 10px 30px rgba(0,0,0,.18)));
+  -webkit-mask-image:radial-gradient(circle var(--tpr) at var(--tpnx) 0px, transparent 97%, black 100%);
+  mask-image:radial-gradient(circle var(--tpr) at var(--tpnx) 0px, transparent 97%, black 100%);
+}
+
+/* ── Ikonkalar qatlami: bar ustida, kesilmaydi ── */
+.tp-bn-items{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-around;
+  height:100%;padding:0 .3rem;
 }
 
 .tp-bn-item{
   position:relative;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
   gap:.15rem;
-  flex:1 1 0;
-  height:100%;
+  flex:1 1 0;height:100%;padding-bottom:.5rem;
   background:none;border:none;cursor:pointer;
   -webkit-tap-highlight-color:transparent;
-  color:var(--text3);
-  transition:color .25s ease;
+  color:rgba(255,255,255,.72);
 }
+.tp-bn-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:opacity .18s ease}
+.tp-bn-lbl{font-size:.56rem;font-weight:700;color:rgba(255,255,255,.72);transition:opacity .18s ease}
+.tp-bn-item.on svg, .tp-bn-item.on .tp-bn-lbl{opacity:0}
+.tp-bn-item.main svg{width:21px;height:21px}
 
-.tp-bn-ico{
-  width:38px;height:38px;border-radius:50%;
+/* ── Suzuvchi "doira" (blob): bar kesmasiga aynan sig'adi, tepaga chiqib turadi ──
+   Pozitsiyasi (transform) butunlay JS tomonidan har animatsiya frame'ida
+   to'g'ridan-to'g'ri yoziladi — shu sabab bu yerda transform berilmaydi. */
+.tp-bn-blob{
+  position:absolute;top:0;left:0;z-index:3;
+  width:calc(var(--tpr) * 1.62);height:calc(var(--tpr) * 1.62);
+  border-radius:50%;
+  background:#fff;
   display:flex;align-items:center;justify-content:center;
-  transition:transform .38s cubic-bezier(.34,1.56,.64,1),
-             background .3s ease, border-color .3s ease, box-shadow .3s ease;
-  border:3px solid transparent;
+  box-shadow:0 8px 18px rgba(0,0,0,.28);
 }
-.tp-bn-ico svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s ease}
-
-.tp-bn-lbl{
-  font-size:.6rem;font-weight:700;letter-spacing:.01em;
-  opacity:0;transform:translateY(2px);
-  height:0;overflow:hidden;
-  transition:opacity .25s ease, transform .25s ease, height .25s ease;
-}
-
-.tp-bn-item.on{color:var(--p1,var(--acc,#7C3AED))}
-.tp-bn-item.on .tp-bn-ico{
-  transform:translateY(-20px) scale(1.08);
+.tp-bn-blob::before{
+  content:'';position:absolute;inset:3px;border-radius:50%;
   background:linear-gradient(135deg,var(--p1,var(--acc,#7C3AED)),var(--p2,var(--acc2,#DB2777)));
-  border-color:var(--card);
-  box-shadow:0 8px 20px rgba(124,58,237,.45), 0 0 0 1px var(--border);
-  animation:tpBnPop .42s cubic-bezier(.34,1.56,.64,1);
 }
-.tp-bn-item.on .tp-bn-ico svg{stroke:#fff}
-.tp-bn-item.on .tp-bn-lbl{opacity:1;transform:translateY(-14px);height:12px}
-
-@keyframes tpBnPop{
-  0%{transform:translateY(0) scale(1)}
-  45%{transform:translateY(-26px) scale(1.18)}
-  100%{transform:translateY(-20px) scale(1.08)}
-}
-
-.tp-bn-item.main .tp-bn-ico{
-  width:44px;height:44px;
-  background:linear-gradient(135deg,var(--p3,var(--acc3,#2DD4BF)),var(--p1,var(--acc,#7C3AED)));
-  color:#fff;
-}
-.tp-bn-item.main .tp-bn-ico svg{stroke:#fff}
-.tp-bn-item.main:not(.on) .tp-bn-ico{transform:translateY(-8px);box-shadow:0 6px 16px rgba(124,58,237,.35)}
-.tp-bn-item.main.on .tp-bn-ico{transform:translateY(-24px) scale(1.1)}
-
-.tp-bn-item:active .tp-bn-ico{filter:brightness(.94)}
+.tp-bn-blob-ico{position:relative;z-index:1;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+.tp-bn-blob-ico svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.tp-bn-blob-ico.out{animation:tpIcoOut .15s ease forwards}
+.tp-bn-blob-ico.in{animation:tpIcoIn .18s ease .12s both}
+@keyframes tpIcoOut{to{opacity:0;transform:scale(.5) rotate(-25deg)}}
+@keyframes tpIcoIn{from{opacity:0;transform:scale(.5) rotate(25deg)}to{opacity:1;transform:scale(1) rotate(0)}}
 
 /* ── SAHIFA SURISH (SWIPE) TRANZITSIYASI ── */
 #tp-slide-wrap{
   transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .32s ease;
-  will-change:transform, opacity;
 }
