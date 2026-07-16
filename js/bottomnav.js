@@ -1,11 +1,13 @@
 /* ══════════════════════════════════════════════════════════════
    TESTPRO — js/bottomnav.js
-   Umumiy pastki navigatsiya menyusi (Magic Navigation uslubida,
-   panelda haqiqiy "kesma" + undan-unga sirg'aluvchi doira bilan).
-   js/api.js dan KEYIN, css/bottomnav.css ulangandan keyin qo'shiladi.
-   Har bir ichki sahifa oxiriga shuni qo'shish kifoya:
-     <link rel="stylesheet" href="css/bottomnav.css">
-     <script src="js/bottomnav.js"></script>
+   Umumiy pastki navigatsiya (Magic Navigation, notch+blob) +
+   sahifa o'tishlarini "bir butun" ko'rsatish uchun parda (curtain)
+   va boshqa sahifalarni prefetch qilish.
+
+   MUHIM: bu skript <script src="js/api.js"> DAN DARHOL KEYIN,
+   sahifaning yuqori qismida chaqiriladi (body oxirida emas!) —
+   shu sabab navbar sahifa hali to'liq parse bo'lmasidanoq chiziladi
+   va "keyin paydo bo'lib qolish" muammosi yo'qoladi.
    ══════════════════════════════════════════════════════════════ */
 
 (function(){
@@ -56,10 +58,44 @@
     return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
   }
 
-  /* ══ NAV BAR RENDER ══ */
+  /* ══════════ 0. PARDA (CURTAIN) — sahifa o'tishini "bir butun" qilib ko'rsatadi ══════════ */
+  let curtainEl = null;
+
+  function ensureCurtain(){
+    if (curtainEl) return curtainEl;
+    curtainEl = document.createElement('div');
+    curtainEl.id = 'tp-curtain';
+    curtainEl.style.cssText =
+      'position:fixed;inset:0;z-index:1500;' +
+      'background:var(--bg,#F5F3FF);' +
+      'opacity:1;pointer-events:none;' +
+      'transition:opacity .22s ease;';
+    // body hali yo'q bo'lishi mumkin emas — bu skript body ichida ishlaydi
+    document.body.appendChild(curtainEl);
+    return curtainEl;
+  }
+
+  function hideCurtain(delay){
+    const c = ensureCurtain();
+    setTimeout(() => { c.style.opacity = '0'; }, delay || 0);
+  }
+
+  function showCurtain(){
+    const c = ensureCurtain();
+    c.style.transition = 'none';
+    void c.offsetWidth;
+    c.style.transition = 'opacity .18s ease';
+    c.style.opacity = '1';
+  }
+
+  // Darhol (parse vaqtida) qopqoqni ko'rsatamiz — shu bilan navbar/kontent
+  // hali tayyor bo'lmagan payt umuman ko'rinmaydi.
+  ensureCurtain();
+
+  /* ══════════ 1. NAV BAR — DARHOL CHIZILADI ══════════ */
   let barEl, blobEl, blobIcoEl, itemEls = [], items = [], activeIdx = -1;
 
-  function render(){
+  function renderNav(){
     items = buildItems();
     const file = currentFile();
 
@@ -103,9 +139,25 @@
 
     document.body.classList.add('tp-has-bn');
     document.body.appendChild(wrap);
+    // parda navbardan HAM tepada turishi kerak — qayta oxiriga o'tkazamiz
+    if (curtainEl) document.body.appendChild(curtainEl);
 
-    // boshlang'ich holatda animatsiyasiz joylashtirish
     requestAnimationFrame(() => positionAt(activeIdx));
+    prefetchOthers(file);
+  }
+
+  function prefetchOthers(file){
+    try{
+      items.forEach(it => {
+        if (it.page === file) return;
+        if (document.querySelector('link[data-tp-prefetch="' + it.page + '"]')) return;
+        const l = document.createElement('link');
+        l.rel = 'prefetch';
+        l.href = basePath() + it.page;
+        l.setAttribute('data-tp-prefetch', it.page);
+        document.head.appendChild(l);
+      });
+    }catch(e){}
   }
 
   function centerXOf(idx){
@@ -132,10 +184,9 @@
     animating = true;
     const fromX = centerXOf(activeIdx);
     const toX = centerXOf(idx);
-    const dur = 340;
+    const dur = 300;
     const t0 = performance.now();
 
-    // eski faol tugma ikonkasi qaytadan ko'rinadi, yangisi yashiriladi
     itemEls[activeIdx].classList.remove('on');
     itemEls[idx].classList.add('on');
 
@@ -179,15 +230,13 @@
   function goToTab(idx){
     const targetPage = items[idx].page;
     const dir = idx > activeIdx ? 'left' : 'right';
-    const wrapper = wrapContent();
-    wrapper.style.transform = 'translateX(' + (dir === 'left' ? '-28px' : '28px') + ')';
-    wrapper.style.opacity = '0';
     glideTo(idx);
+    showCurtain();
     try{ sessionStorage.setItem('tp_nav_dir', dir); }catch(e){}
-    setTimeout(() => { window.location.href = basePath() + targetPage; }, 300);
+    setTimeout(() => { window.location.href = basePath() + targetPage; }, 230);
   }
 
-  /* ══ SAHIFA WRAPPER: fixed bo'lmagan elementlarni bitta konteynerga yig'ish ══ */
+  /* ══════════ 2. QOLGAN QISM: DOMContentLoaded'DA ══════════ */
   function wrapContent(){
     const existing = document.getElementById('tp-slide-wrap');
     if (existing) return existing;
@@ -196,13 +245,13 @@
     const wrapper = document.createElement('div');
     wrapper.id = 'tp-slide-wrap';
 
-    const ALWAYS_FIXED_SELECTOR = 'nav.nav, .grain, .mesh-extra, .ov, .book-modal-bg, #tp-bn-wrap';
+    const ALWAYS_FIXED_SELECTOR = 'nav.nav, .grain, .mesh-extra, .ov, .book-modal-bg, #tp-bn-wrap, #tp-curtain';
 
     const kids = Array.from(body.childNodes);
     const toMove = [];
     kids.forEach(node => {
       if (node.nodeType === 1) {
-        if (node.tagName === 'SCRIPT' || node.id === 'tp-bn-wrap') return;
+        if (node.tagName === 'SCRIPT' || node.id === 'tp-bn-wrap' || node.id === 'tp-curtain') return;
         if (node.matches && node.matches(ALWAYS_FIXED_SELECTOR)) return;
         const cs = window.getComputedStyle(node);
         if (cs.position === 'fixed') return;
@@ -210,29 +259,30 @@
       toMove.push(node);
     });
     toMove.forEach(n => wrapper.appendChild(n));
-    body.appendChild(wrapper);
+    body.insertBefore(wrapper, body.firstChild);
     return wrapper;
   }
 
-  function playEntrance(){
+  function finalizeEntrance(){
     let dir = null;
     try{ dir = sessionStorage.getItem('tp_nav_dir'); sessionStorage.removeItem('tp_nav_dir'); }catch(e){}
     const wrapper = wrapContent();
-    if (!dir) return;
-    const from = dir === 'left' ? '28px' : '-28px';
-    wrapper.style.transition = 'none';
-    wrapper.style.transform = 'translateX(' + from + ')';
-    wrapper.style.opacity = '0';
-    void wrapper.offsetWidth; // reflow
-    requestAnimationFrame(() => {
-      wrapper.style.transition = '';
-      wrapper.style.transform = 'translateX(0)';
-      wrapper.style.opacity = '1';
-      setTimeout(() => { wrapper.style.transform = ''; }, 360);
-    });
+    if (dir) {
+      const from = dir === 'left' ? '18px' : '-18px';
+      wrapper.style.transition = 'none';
+      wrapper.style.transform = 'translateX(' + from + ')';
+      void wrapper.offsetWidth;
+      requestAnimationFrame(() => {
+        wrapper.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)';
+        wrapper.style.transform = 'translateX(0)';
+        setTimeout(() => { wrapper.style.transform = ''; wrapper.style.transition = ''; }, 320);
+      });
+    }
+    // Kontent joyiga tushgach, pardani ochamiz — foydalanuvchi hech qanday
+    // "yig'ilish"ni ko'rmaydi, faqat silliq fade.
+    hideCurtain(60);
   }
 
-  /* ══ BARMOQ BILAN SURISH (SWIPE) ══ */
   function initSwipe(){
     let sx = 0, sy = 0, tracking = false, startEl = null;
     const THRESHOLD = 70;
@@ -253,7 +303,6 @@
       const dy = t.clientY - sy;
       if (Math.abs(dx) < THRESHOLD || Math.abs(dy) > Math.abs(dx) * 0.6) return;
 
-      // ichki gorizontal skroll (karusel) ustida bo'lsa, sahifa surishni bekor qilamiz
       let el = startEl;
       while (el && el !== document.body) {
         if (el.scrollWidth > el.clientWidth + 4) {
@@ -271,16 +320,23 @@
     }, { passive:true });
   }
 
-  function init(){
-    render();
-    playEntrance();
+  function deferredInit(){
+    finalizeEntrance();
     initSwipe();
     window.addEventListener('resize', () => { if (!animating) positionAt(activeIdx); });
   }
 
+  // ── ISHGA TUSHIRISH ──
+  renderNav(); // darhol — sahifa hali to'liq parse bo'lmagan bo'lsa ham
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', deferredInit);
   } else {
-    init();
+    deferredInit();
   }
+
+  // Har ehtimolga qarshi: agar biror sabab bilan yuklanish uzoq cho'zilsa,
+  // parda abadiy osilib qolmasin.
+  window.addEventListener('load', () => hideCurtain(0));
+  setTimeout(() => hideCurtain(0), 2500);
 })();
