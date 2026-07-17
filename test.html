@@ -1482,7 +1482,7 @@ function toggleReview(){
     }).join('');
   }
 }
-function goBack(){if(document.referrer)history.back();else location.href='/dashboard.html';}
+function goBack(){if(document.referrer)history.back();else location.href='/shell.html?target=dashboard.html';}
 
 function finishQuiz(){ askFinish(); }
 function restart(){ retryTest(); }
