@@ -3,7 +3,7 @@
    Telegram Login + proxy.js API
    ================================================================ */
 
-const BOT_USERNAME = window.TESTPRO_BOT || 'Quizmarkerbot';
+const BOT_USERNAME = window.TESTPRO_BOT || 'Quiztimeuzbot';
 const API_URL      = '/api/proxy';
 
 /* ── Navigation ── */
@@ -11,7 +11,20 @@ const BASE_PATH = (() => {
   const p = window.location.pathname;
   return p.substring(0, p.lastIndexOf('/') + 1);
 })();
-function goTo(page) { window.location.href = BASE_PATH + page; }
+/* Ba'zi sahifalar (login/test) Telegramning o'z Telegram.WebApp ko'prigiga
+   bevosita bog'liq — shu sabab ular shell.html'ning iframe'i ICHIDA emas,
+   har doim ENG YUQORI (top-level) darajada ochilishi kerak. Agar shu tekshiruv
+   bo'lmasa, iframe ichida joylashgan Telegram.WebApp obyekti native ilova bilan
+   to'g'ri bog'lana olmay, haptika/tema kabi funksiyalar ishlamay qolishi mumkin. */
+const TP_BREAKOUT_PAGES = ['login.html', 'test.html', 'web_test.html'];
+function goTo(page) {
+  const fname = page.split('?')[0].split('/').pop();
+  if (TP_BREAKOUT_PAGES.includes(fname) && window.top !== window.self) {
+    window.top.location.href = BASE_PATH + page;
+  } else {
+    window.location.href = BASE_PATH + page;
+  }
+}
 
 /* ── Subject map ── */
 const SUBJECTS = {
@@ -124,7 +137,18 @@ const AuthHelpers = {
     const u = TGAuth.get();
     if (u) return u;
     // 3. Yo'q — login.html ga yuborish
-    goTo(fallback + '?next=' + encodeURIComponent(location.href));
+    //    Agar shell.html'ning iframe'i ichida bo'lsak, login'dan keyin
+    //    yalang'och sahifaga emas, balki QAYTADAN shell'ga qaytarish uchun
+    //    'next' manzilini shell orqali quramiz.
+    // Diqqat: nextUrl BASE_PATH'siz, nisbiy holda quriladi — goTo() o'zi
+    // BASE_PATH'ni bittagina marta qo'shadi (aks holda ikki marta qo'shilib,
+    // manzil buzilib qolardi).
+    const inShell = window.top !== window.self;
+    const nextUrl = inShell
+      ? 'shell.html?target=' + encodeURIComponent(location.pathname.split('/').pop()) +
+        (location.search ? '&' + location.search.slice(1) : '')
+      : location.href;
+    goTo(fallback + '?next=' + encodeURIComponent(nextUrl));
     return null;
   }
 };
