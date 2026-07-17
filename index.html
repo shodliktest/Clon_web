@@ -2,261 +2,31 @@
 <html lang="uz" data-theme="light" style="background:#F5F3FF">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>TestPro</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
-<link href="css/style.css" rel="stylesheet"/>
 <link href="css/bottomnav.css" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#F5F3FF}
+  #tp-frames{position:fixed;inset:0;width:100%;height:100%}
+  #tp-frames iframe{
+    position:absolute;inset:0;width:100%;height:100%;border:0;
+    background:#F5F3FF;
+  }
+  #tp-frames iframe.tp-hidden{display:none}
+</style>
 </head>
 <body>
 
-<div class="grain"></div>
-<div class="mesh-extra"></div>
-
-<nav class="nav">
-  <div class="logo" onclick="goTo('index.html')">
-    <div class="logo-mk"><span>🎓</span></div>
-    <span class="logo-tx">TestPro</span>
-  </div>
-  <div class="nav-mid">
-    <button class="ntab on">Testlar</button>
-    <button class="ntab" onclick="goTo('dashboard.html')">Dashboard</button>
-  </div>
-  <div class="nav-r">
-    <button class="ibtn" id="tbtn">🌙</button>
-    <button class="lbtn" id="auth-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Kirish</button>
-  </div>
-</nav>
-
-<div class="page">
-
-  <div class="hero">
-    <div class="hero-badge"><i></i> Interaktiv testlar platformasi</div>
-    <div class="hero-h">Bilimingizni<br/><span class="grad">yangicha his qiling</span></div>
-    <p class="hero-p">O'nlab fandan tayyor testlar, aniq natijalar va zamonaviy interfeys — barchasi bir joyda.</p>
-    <div class="hero-actions">
-      <button class="hero-btn" onclick="document.getElementById('content').scrollIntoView({behavior:'smooth'})">Testlarni ko'rish →</button>
-      <button class="hero-btn2" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">O'z testimni yarataman</button>
-    </div>
-  </div>
-
-  <div class="statstrip">
-    <div class="stat-item"><div class="stat-v" id="stat-subj">0</div><div class="stat-l">Fan</div></div>
-    <div class="stat-item"><div class="stat-v" id="stat-tests">0</div><div class="stat-l">Test</div></div>
-    <div class="stat-item"><div class="stat-v" id="stat-solved">0</div><div class="stat-l">Yechilgan</div></div>
-  </div>
-
-  <div class="filters" id="filters"></div>
-
-  <div id="content"><div class="sp-wrap"><div class="sp"><i></i><i></i></div></div></div>
-
-  <div class="cta" id="cta" style="display:none">
-    <div class="cta-h">O'z testingizni yarating!</div>
-    <p class="cta-p">Bir necha daqiqada professional test yarating va do'stlaringiz bilan ulashing</p>
-    <button class="cta-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Boshlash →</button>
-  </div>
-
-</div>
-
-<!-- KO'RISH (PREVIEW) MODAL -->
-<div class="book-modal-bg" id="book-modal-bg">
-  <div class="book-modal">
-    <div class="book-cover">
-      <button class="book-close" onclick="closeBookModal()">✕</button>
-      <div class="book-badge" id="book-badge">Umumiy</div>
-      <div class="book-cover-title" id="book-cover-title">...</div>
-    </div>
-    <div class="book-body">
-      <div class="book-title" id="book-title">...</div>
-      <div class="book-author" id="book-author">...</div>
-      <p class="book-desc" id="book-desc-text"></p>
-      <div class="book-meta">
-        <div class="b-meta"><div class="b-ico">📝</div><div class="b-val" id="book-qcount">—</div><div class="b-lbl">Savol</div></div>
-        <div class="b-meta"><div class="b-ico">⏱</div><div class="b-val" id="book-time">—</div><div class="b-lbl">Vaqt</div></div>
-        <div class="b-meta"><div class="b-ico">👁</div><div class="b-val" id="book-solves">—</div><div class="b-lbl">Yechilgan</div></div>
-      </div>
-      <button class="book-start-btn" id="book-start-btn">Sinovni boshlash →</button>
-    </div>
-  </div>
-</div>
+<!-- Har bir bo'lim (index/dashboard/create/history/profile/admin) uchun
+     ALOHIDA, oldindan yuklab qo'yilgan iframe. Har biri o'zining mustaqil
+     JS muhitida ishlaydi (shu sabab sahifalarning ichki kodi bir-biriga
+     TA'SIR QILMAYDI). Faqat BITTASI ko'rinadi — almashtirish hech qanday
+     tarmoq so'rovisiz, zumda bo'ladi. Navbar bulardan TASHQARIDA, shu
+     sahifada bir marta yaratiladi va hech qachon yo'q qilinmaydi. -->
+<div id="tp-frames"></div>
 
 <script src="js/api.js"></script>
 <script src="js/bottomnav.js"></script>
-<script src="js/common.js"></script>
-<script>
-AuthHelpers.getCurrentUser().then(u=>{
-  if(u){const b=document.getElementById('auth-btn');b.textContent='Dashboard';b.onclick=()=>goTo('dashboard.html');}
-}).catch(()=>{});
-
-/* Carousel, TH, esc, toast, ICON, animateCount, spotlight-hover —
-   barchasi js/common.js faylida aniqlangan (yuqorida ulangan). */
-
-/* ── Karta qurish ── */
-function buildCard(t, icon, idx){
-  const c=document.createElement('div');
-  c.className='card';
-  c.style.animationDelay=(Math.min(idx,8)*0.05)+'s';
-  c.onclick=()=>goTo('test.html?id='+(t.test_id||t.id));
-  c.innerHTML=`
-    <div class="card-icon">${icon}</div>
-    <div class="card-title">${esc(t.title)}</div>
-    <div class="card-author">${esc(t.creator_name||t.authorName||'Anonim')}</div>
-    <div class="chips">
-      <span class="ch">📝 ${t.question_count||0}</span>
-      <span class="ch">👁 ${t.solve_count||0}</span>
-      ${t.time_limit?`<span class="ch">⏱ ${t.time_limit}daq</span>`:''}
-      ${t.avg_score?`<span class="ch gold">⭐${Math.round(t.avg_score)}%</span>`:''}
-    </div>
-    <div class="card-actions">
-      <button class="card-view" title="Ko'rish">👁</button>
-      <button class="card-btn">Boshlash →</button>
-    </div>`;
-  c.querySelector('.card-view').onclick=(e)=>{e.stopPropagation();openBookPreview(t.test_id||t.id,t);};
-  return c;
-}
-
-/* ── Ro'yxat elementi qurish ── */
-function buildListItem(t, icon, idx){
-  const el=document.createElement('div');
-  el.className='li';
-  el.style.animationDelay=(Math.min(idx,10)*0.04)+'s';
-  el.onclick=()=>openBookPreview(t.test_id||t.id,t);
-  el.innerHTML=`
-    <div class="li-ico">${icon}</div>
-    <div class="li-info">
-      <div class="li-nm">${esc(t.title)}</div>
-      <div class="li-meta">
-        <span>📝 ${t.question_count||0}</span>
-        <span>👁 ${t.solve_count||0}</span>
-        ${t.avg_score?`<span>⭐${Math.round(t.avg_score)}%</span>`:''}
-        <span>${esc(t.creator_name||'Anonim')}</span>
-      </div>
-    </div>
-    <button class="li-btn">▶</button>`;
-  el.querySelector('.li-btn').onclick=(e)=>{e.stopPropagation();goTo('test.html?id='+(t.test_id||t.id));};
-  return el;
-}
-
-/* ── Guruh listini ko'rsatish (barchasi bosilganda) ── */
-function showGroupList(subj, arr, icon, sub){
-  const wrap=document.getElementById('content');
-  document.getElementById('cta').style.display='none';
-  wrap.innerHTML='';
-
-  const back=document.createElement('button');
-  back.className='back-btn';
-  back.innerHTML='← Orqaga';
-  back.onclick=()=>renderGroups(window._allPub);
-  wrap.appendChild(back);
-
-  const hdr=document.createElement('div');
-  hdr.className='grp-hdr';
-  hdr.innerHTML=`
-    <div class="grp-l">
-      <div class="grp-icon">${icon}</div>
-      <div>
-        <div class="grp-nm">${esc(sub.label)}</div>
-        <div class="grp-ct">${arr.length} ta test</div>
-      </div>
-    </div>`;
-  wrap.appendChild(hdr);
-
-  const list=document.createElement('div');
-  list.className='list-view';
-  arr.forEach((t,i)=>list.appendChild(buildListItem(t,icon,i)));
-  wrap.appendChild(list);
-}
-
-/* ── Asosiy guruhlar ko'rinishi ── */
-function renderGroups(pub){
-  const wrap=document.getElementById('content');
-  wrap.innerHTML='';
-  document.getElementById('cta').style.display='block';
-
-  const grps={};
-  pub.forEach(t=>{const k=t.category||t.subject||'other';if(!grps[k])grps[k]=[];grps[k].push(t);});
-
-  Object.entries(grps).forEach(([subj,arr])=>{
-    const sub=getSubject(subj);
-    const icon=ICON[subj]||getIco(subj)||'📚';
-
-    const g=document.createElement('div');
-    g.className='grp';
-
-    const hdr=document.createElement('div');
-    hdr.className='grp-hdr';
-    hdr.innerHTML=`
-      <div class="grp-l">
-        <div class="grp-icon">${icon}</div>
-        <div>
-          <div class="grp-nm">${esc(sub.label)}</div>
-          <div class="grp-ct">${arr.length} ta test</div>
-        </div>
-      </div>
-      <button class="see-all">Barchasi →</button>`;
-    hdr.querySelector('.see-all').onclick=()=>showGroupList(subj,arr,icon,sub);
-    g.appendChild(hdr);
-
-    const scroll=document.createElement('div');
-    scroll.className='scroll carousel';
-    arr.forEach((t,i)=>scroll.appendChild(buildCard(t,icon,i)));
-    g.appendChild(scroll);
-
-    wrap.appendChild(g);
-    Carousel.register(scroll);
-  });
-
-  document.getElementById('stat-subj').textContent = Object.keys(grps).length;
-}
-
-/* ── Filter chiplarini render qilish ── */
-function renderFilters(pub){
-  const wrap=document.getElementById('filters');
-  const grps={};
-  pub.forEach(t=>{const k=t.category||t.subject||'other';if(!grps[k])grps[k]=[];grps[k].push(t);});
-  const cats=[{k:null,label:'Barchasi',icon:'✨'}].concat(
-    Object.keys(grps).map(k=>({k,label:getSubject(k).label,icon:ICON[k]||getIco(k)||'📚'}))
-  );
-  wrap.innerHTML='';
-  cats.forEach(c=>{
-    const b=document.createElement('button');
-    b.className='fchip'+(c.k===null?' on':'');
-    b.innerHTML=`${c.icon} ${esc(c.label)}`;
-    b.onclick=()=>{
-      wrap.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on');
-      renderGroups(c.k===null ? pub : pub.filter(t=>(t.category||t.subject||'other')===c.k));
-    };
-    wrap.appendChild(b);
-  });
-}
-
-/* ── Load ── */
-(async()=>{
-  const wrap=document.getElementById('content');
-  try{
-    const tests=await DB.getPublicTests();
-    const pub=(tests||[]).filter(t=>t.visibility==='public');
-    window._allPub=pub;
-
-    if(!pub.length){
-      wrap.innerHTML=`<div class="hero">
-        <div class="hero-h">TestPro ga<br/><span class="grad">xush kelibsiz!</span></div>
-        <p class="hero-p">Hozircha ommaviy test mavjud emas. Birinchi bo'ling!</p>
-        <button class="hero-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Test yaratish →</button>
-      </div>`;
-      return;
-    }
-
-    renderFilters(pub);
-    renderGroups(pub);
-
-    const totalSolved = pub.reduce((s,t)=>s+(t.solve_count||0),0);
-    animateCount(document.getElementById('stat-tests'), pub.length);
-    animateCount(document.getElementById('stat-solved'), totalSolved);
-  }catch(e){
-    wrap.innerHTML=`<div class="err">❌ Xatolik: ${e.message}</div>`;
-  }
-})();
-</script></body>
+</body>
 </html>
