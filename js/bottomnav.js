@@ -2,17 +2,17 @@
    TESTPRO — js/bottomnav.js
    Uchta rejimda ishlaydi:
 
-   1) SHELL   — shell.html'da. Navbar shu yerda BIR MARTA yaratiladi
+   1) SHELL   — index.html'da (avvalgi shell.html). Navbar shu yerda BIR MARTA yaratiladi
       va hech qachon yo'q qilinmaydi. Tab bosilganda / swipe qilinganda
       faqat ICHKI iframe'ning src'i o'zgaradi — navbar joyidan jilmaydi.
 
    2) EMBEDDED — index/dashboard/create/history/profile/admin.html
-      shell.html'ning iframe'i ICHIDA ochilganda. Bu holda o'z navbarini
+      index.html'ning iframe'i ICHIDA ochilganda. Bu holda o'z navbarini
       chizmaydi (shell allaqachon bor), faqat swipe'ni ushlab, shell'ga
       postMessage orqali xabar beradi.
 
    3) STANDALONE — bu sahifalar iframe'siz, to'g'ridan-to'g'ri ochilganda
-      (masalan shell.html hali ulanmagan bo'lsa). Bu — oldingi, to'liq
+      (masalan index.html'ga hali ulanmagan bo'lsa). Bu — oldingi, to'liq
       ishlaydigan xulq-atvor (parda + darhol-render + prefetch), ORQAGA
       MOSLIK uchun saqlanadi. Hech narsa buzilmaydi.
    ══════════════════════════════════════════════════════════════ */
@@ -29,7 +29,7 @@
   };
 
   const NAV_ITEMS = [
-    { key:'index',     page:'index.html',     label:'Bosh sahifa', icon:'home'   },
+    { key:'index',     page:'home.html',      label:'Bosh sahifa', icon:'home'   },
     { key:'dashboard', page:'dashboard.html', label:'Dashboard',   icon:'grid'   },
     { key:'create',    page:'create.html',    label:'Yangi test',  icon:'plus',  main:true },
     { key:'history',   page:'history.html',   label:'Tarix',       icon:'clock'  },
@@ -317,7 +317,7 @@
         el = el.parentElement;
       }
       try{
-        // window.parent (eng yaqin ota — shell.html), window.top EMAS:
+        // window.parent (eng yaqin ota — index.html/shell), window.top EMAS:
         // Telegram ba'zan Mini App'ni o'zining iframe'iga o'rab yuboradi,
         // bu holda window.top shell emas, Telegram oynasiga ishora qilardi.
         window.parent.postMessage({ source:'tp-embedded', type:'swipe', dir: dx < 0 ? 'left' : 'right' }, window.location.origin);

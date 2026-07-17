@@ -12,7 +12,7 @@ const BASE_PATH = (() => {
   return p.substring(0, p.lastIndexOf('/') + 1);
 })();
 /* Ba'zi sahifalar (login/test) Telegramning o'z Telegram.WebApp ko'prigiga
-   bevosita bog'liq — shu sabab ular shell.html'ning iframe'i ICHIDA emas,
+   bevosita bog'liq — shu sabab ular index.html'ning (shell) iframe'i ICHIDA emas,
    har doim ENG YUQORI (top-level) darajada ochilishi kerak. Agar shu tekshiruv
    bo'lmasa, iframe ichida joylashgan Telegram.WebApp obyekti native ilova bilan
    to'g'ri bog'lana olmay, haptika/tema kabi funksiyalar ishlamay qolishi mumkin. */
@@ -137,7 +137,7 @@ const AuthHelpers = {
     const u = TGAuth.get();
     if (u) return u;
     // 3. Yo'q — login.html ga yuborish
-    //    Agar shell.html'ning iframe'i ichida bo'lsak, login'dan keyin
+    //    Agar index.html'ning (shell) iframe'i ichida bo'lsak, login'dan keyin
     //    yalang'och sahifaga emas, balki QAYTADAN shell'ga qaytarish uchun
     //    'next' manzilini shell orqali quramiz.
     // Diqqat: nextUrl BASE_PATH'siz, nisbiy holda quriladi — goTo() o'zi
@@ -145,7 +145,7 @@ const AuthHelpers = {
     // manzil buzilib qolardi).
     const inShell = window.top !== window.self;
     const nextUrl = inShell
-      ? 'shell.html?target=' + encodeURIComponent(location.pathname.split('/').pop()) +
+      ? 'index.html?target=' + encodeURIComponent(location.pathname.split('/').pop()) +
         (location.search ? '&' + location.search.slice(1) : '')
       : location.href;
     goTo(fallback + '?next=' + encodeURIComponent(nextUrl));
