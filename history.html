@@ -104,7 +104,7 @@ if(typeof normalizeQ==='undefined'){window.normalizeQ=function(arr){return(arr||
 if(typeof fmtTime==='undefined'){window.fmtTime=function(s){s=s||0;return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};}
 if(typeof fmtDate==='undefined'){window.fmtDate=function(ts){if(!ts)return'—';try{const ms=(typeof ts==='number'&&ts<1e12)?ts*1000:ts;return new Date(ms).toLocaleDateString('uz-UZ',{day:'numeric',month:'short',year:'numeric'});}catch(e){return'—';}};}
 
-let ALL=[], CUR='all';
+let ALL=[], CUR='all', CURRENT_UID='';
 
 function setFilter(f, el){
   CUR=f;
@@ -187,18 +187,23 @@ function render(list){
 }
 
 async function clearAll(){
-  if(!confirm('Barcha natijalar tarixini tozalashni xohlaysizmi?')) return;
-  localStorage.removeItem('tp_results');
-  ALL=[]; render([]);
-  document.getElementById('st-all').textContent='0';
-  document.getElementById('st-avg').textContent='—';
-  document.getElementById('st-best').textContent='—';
-  toast('🗑 Tarix tozalandi');
+  if(!confirm('Barcha natijalar tarixini butunlay o\'chirishni xohlaysizmi? Bu amalni ortga qaytarib bo\'lmaydi.')) return;
+  try{
+    await DB.clearMyResults(CURRENT_UID);
+    ALL=[]; render([]);
+    document.getElementById('st-all').textContent='0';
+    document.getElementById('st-avg').textContent='—';
+    document.getElementById('st-best').textContent='—';
+    toast('🗑 Tarix butunlay o\'chirildi');
+  }catch(e){
+    toast('❌ O\'chirishda xatolik, qayta urinib ko\'ring');
+  }
 }
 
 (async()=>{
   let CU=null; try{ CU=await AuthHelpers.getCurrentUser(); }catch(e){}
   const uid = CU ? String(CU.id||CU.uid||CU._tg_id||'') : '';
+  CURRENT_UID = uid;
   try{
     const res = await DB.getMyResults(uid, 0);
     ALL=res;
