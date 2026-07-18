@@ -212,6 +212,7 @@ async function _req(method, path, body) {
 }
 const GET  = p     => _req('GET',  p);
 const POST = (p,b) => _req('POST', p, b);
+const DEL  = p     => _req('DELETE', p);
 
 /* ════════════════════════════════════════════
    NORMALIZE QUESTIONS  (bot format → web format)
@@ -337,6 +338,16 @@ const DB = {
   },
 
   async getMyResults(userId, limit = 100) {
+    // 1) Supabase — haqiqiy manba (barcha qurilma/brauzerlarda bir xil ko'rinadi)
+    if (userId) {
+      try {
+        const remote = await GET('/api/results/' + userId);
+        if (Array.isArray(remote)) {
+          return limit ? remote.slice(0, limit) : remote;
+        }
+      } catch (e) { /* tarmoq yo'q yoki xato — pastdagi localStorage'ga o'tamiz */ }
+    }
+    // 2) Zaxira: localStorage (masalan offline holat uchun)
     const all  = JSON.parse(localStorage.getItem('tp_results') || '[]');
     let mine;
     if (userId) {
@@ -348,6 +359,14 @@ const DB = {
       mine = all;
     }
     return limit ? mine.slice(0, limit) : mine;
+  },
+
+  // Foydalanuvchining butun natijalar tarixini HAQIQATDA o'chiradi (Supabase + localStorage)
+  async clearMyResults(userId) {
+    try { localStorage.removeItem('tp_results'); } catch {}
+    if (!userId) return true;
+    await DEL('/api/results/' + userId);
+    return true;
   },
 
   // Testni kim yechganini olish
