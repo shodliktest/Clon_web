@@ -7,6 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
 <link href="css/style.css" rel="stylesheet"/>
 <link href="css/bottomnav.css" rel="stylesheet"/>
+<style>
+  .quote-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:180px}
+  .quote-mark{font-family:'Unbounded',sans-serif;font-size:2.6rem;line-height:1;color:rgba(255,255,255,.4);margin-bottom:-.5rem}
+  .quote-text{font-size:1.05rem;font-weight:700;color:#fff;line-height:1.6;max-width:30rem;
+    min-height:4.8em;display:flex;align-items:center;justify-content:center;
+    transition:opacity .4s ease,transform .4s ease}
+  .quote-author{margin-top:.7rem;font-size:.8rem;font-weight:700;color:rgba(255,255,255,.85);
+    transition:opacity .4s ease,transform .4s ease}
+  .quote-fade{opacity:0;transform:translateY(6px)}
+</style>
 </head>
 <body>
 
@@ -18,13 +28,8 @@
     <div class="logo-mk"><span>🎓</span></div>
     <span class="logo-tx">TestPro</span>
   </div>
-  <div class="nav-mid">
-    <button class="ntab on">Testlar</button>
-    <button class="ntab" onclick="goTo('dashboard.html')">Dashboard</button>
-  </div>
   <div class="nav-r">
     <button class="ibtn" id="tbtn">🌙</button>
-    <button class="lbtn" id="auth-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Kirish</button>
   </div>
 </nav>
 
@@ -33,7 +38,7 @@
   <div class="hero">
     <div class="hero-badge"><i></i> Interaktiv testlar platformasi</div>
     <div class="hero-h">Bilimingizni<br/><span class="grad">yangicha his qiling</span></div>
-    <p class="hero-p">O'nlab fandan tayyor testlar, aniq natijalar va zamonaviy interfeys — barchasi bir joyda.</p>
+    <p class="hero-p">O'nlab fandan tayyor testlar — bilimingizni bir joyda sinang.</p>
     <div class="hero-actions">
       <button class="hero-btn" onclick="document.getElementById('content').scrollIntoView({behavior:'smooth'})">Testlarni ko'rish →</button>
       <button class="hero-btn2" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">O'z testimni yarataman</button>
@@ -50,10 +55,10 @@
 
   <div id="content"><div class="sp-wrap"><div class="sp"><i></i><i></i></div></div></div>
 
-  <div class="cta" id="cta" style="display:none">
-    <div class="cta-h">O'z testingizni yarating!</div>
-    <p class="cta-p">Bir necha daqiqada professional test yarating va do'stlaringiz bilan ulashing</p>
-    <button class="cta-btn" onclick="window.open('https://t.me/Quiztimeuzbot?start=webapp','_blank')">Boshlash →</button>
+  <div class="cta quote-card" id="cta" style="display:none">
+    <div class="quote-mark">"</div>
+    <p class="quote-text" id="quoteText">Yuklanmoqda...</p>
+    <div class="quote-author" id="quoteAuthor"></div>
   </div>
 
 </div>
@@ -84,10 +89,6 @@
 <script src="js/bottomnav.js"></script>
 <script src="js/common.js"></script>
 <script>
-AuthHelpers.getCurrentUser().then(u=>{
-  if(u){const b=document.getElementById('auth-btn');b.textContent='Dashboard';b.onclick=()=>goTo('dashboard.html');}
-}).catch(()=>{});
-
 /* Carousel, TH, esc, toast, ICON, animateCount, spotlight-hover —
    barchasi js/common.js faylida aniqlangan (yuqorida ulangan). */
 
@@ -258,5 +259,32 @@ function renderFilters(pub){
     wrap.innerHTML=`<div class="err">❌ Xatolik: ${e.message}</div>`;
   }
 })();
+
+/* ── Olim va faylasuflarning mashhur gaplari — CTA karta o'rniga ── */
+const QUOTES=[
+  {t:"Bilim — kuch.",a:"Frensis Bekon"},
+  {t:"Tasavvur bilimdan muhimroqdir.",a:"Albert Eynshteyn"},
+  {t:"Men bilganim shuki, hech narsa bilmayman.",a:"Sokrat"},
+  {t:"Hayotda qo'rqiladigan narsa yo'q, faqat tushuniladigan narsa bor.",a:"Mari Kyuri"},
+  {t:"Ta'lim — dunyoni o'zgartirish uchun eng kuchli qurol.",a:"Nelson Mandela"},
+  {t:"Bilim — chiroq, johillik — zulmat.",a:"Abu Ali ibn Sino"},
+  {t:"O'qishni yaxshi ko'rgan kishi hech qachon zerikmaydi.",a:"Konfutsiy"},
+  {t:"Kim menga bir harf o'rgatsa, men umrbod unga qulman.",a:"Alisher Navoiy"},
+  {t:"Bilim izlash — beshikdan qabrgacha davom etadigan yo'l.",a:"Hikmatli gap"},
+  {t:"Men mag'lubiyatga uchramadim — shunchaki ishlamaydigan 10 000 usulni topdim.",a:"Tomas Edison"},
+];
+let qIdx=Math.floor(Math.random()*QUOTES.length), qTimer=null;
+function showQuote(i){
+  const te=document.getElementById('quoteText'), ae=document.getElementById('quoteAuthor');
+  if(!te||!ae) return;
+  te.classList.add('quote-fade'); ae.classList.add('quote-fade');
+  setTimeout(()=>{
+    te.textContent='"'+QUOTES[i].t+'"';
+    ae.textContent='— '+QUOTES[i].a;
+    te.classList.remove('quote-fade'); ae.classList.remove('quote-fade');
+  },400);
+}
+showQuote(qIdx);
+qTimer=setInterval(()=>{ qIdx=(qIdx+1)%QUOTES.length; showQuote(qIdx); },6000);
 </script></body>
 </html>
