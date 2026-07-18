@@ -663,6 +663,11 @@ export default async function handler(request) {
     }
 
     // ── results/{uid} ───────────────────────────────────────────
+    if (ep.match(/^results\/\d+/) && request.method === 'DELETE') {
+      const uid = ep.split('/')[1];
+      await db.delete('results', { user_id: uid });
+      return jsonResp({ ok: true });
+    }
     if (ep.match(/^results\/\d+/)) {
       const uid = ep.split('/')[1];
       const data = await db.select('results', {
