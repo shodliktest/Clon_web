@@ -93,7 +93,11 @@ body{display:flex;align-items:center;justify-content:center;padding:1.5rem}
 <script src="js/api.js"></script>
 <script src="js/common.js"></script>
 <script>
-const _next = new URLSearchParams(location.search).get('next') || 'dashboard.html';
+// Bot 'next' parametrini yubormaydi (webauth.py'da yo'q) — shu sabab standart
+// holat endi 'index.html' (qobiq), 'dashboard.html' EMAS. Aks holda botdan
+// kirgan HAR BIR foydalanuvchi qobiqni butunlay chetlab o'tib, eski
+// standalone dashboard.html'ga tushib qolardi.
+const _next = new URLSearchParams(location.search).get('next') || 'index.html';
 
 function showLogged(u){
   document.getElementById('loading').style.display = 'none';
