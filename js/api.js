@@ -338,27 +338,44 @@ const DB = {
   },
 
   async getMyResults(userId, limit = 100) {
-    // 1) Supabase — haqiqiy manba (barcha qurilma/brauzerlarda bir xil ko'rinadi)
+    // Har ikki manbadan ham olamiz va birlashtiramiz — chunki eski
+    // natijalar faqat localStorage'da bo'lishi mumkin (Supabase 'results'
+    // jadvali keyinroq qo'shilgan), yangilari esa Supabase'da.
+    let remote = [];
     if (userId) {
       try {
-        const remote = await GET('/api/results/' + userId);
-        if (Array.isArray(remote)) {
-          return limit ? remote.slice(0, limit) : remote;
-        }
-      } catch (e) { /* tarmoq yo'q yoki xato — pastdagi localStorage'ga o'tamiz */ }
+        const r = await GET('/api/results/' + userId);
+        if (Array.isArray(r)) remote = r;
+      } catch (e) { /* tarmoq/server xatosi — faqat localStorage bilan davom etamiz */ }
     }
-    // 2) Zaxira: localStorage (masalan offline holat uchun)
-    const all  = JSON.parse(localStorage.getItem('tp_results') || '[]');
-    let mine;
+
+    const all = JSON.parse(localStorage.getItem('tp_results') || '[]');
+    let local;
     if (userId) {
-      mine = all.filter(r => {
+      local = all.filter(r => {
         const rid = String(r.userId || r.user_id || '');
         return rid === String(userId) || rid === '';
       });
     } else {
-      mine = all;
+      local = all;
     }
-    return limit ? mine.slice(0, limit) : mine;
+
+    // Birlashtirish: bir xil natija ikki marta chiqmasin (test_id + vaqt bo'yicha)
+    const seen = new Set();
+    const merged = [];
+    [...remote, ...local].forEach(r => {
+      const key = String(r.result_id || r.id || '') || (String(r.test_id || r.testId || '') + '_' + String(r.completed_at || r.completedAt || ''));
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.push(r);
+    });
+    merged.sort((a, b) => {
+      const ta = new Date(a.completed_at || a.completedAt || 0).getTime();
+      const tb = new Date(b.completed_at || b.completedAt || 0).getTime();
+      return tb - ta;
+    });
+
+    return limit ? merged.slice(0, limit) : merged;
   },
 
   // Foydalanuvchining butun natijalar tarixini HAQIQATDA o'chiradi (Supabase + localStorage)
