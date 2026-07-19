@@ -84,14 +84,28 @@ show('d-uid', uid || '(UID ANIQLANMADI — bo\'sh satr)', uid ? 'ok' : 'bad');
 
 async function testSave(){
   show('d-savetest', 'Yuborilmoqda...');
+  if (!uid) { show('d-savetest', 'UID yo\'q — yubormadim', 'bad'); return; }
   try{
-    const id = await DB.saveResult({
-      testId: 'debug_test', testTitle: 'DIAGNOSTIKA TEST',
-      correct: 1, total: 1, percentage: 100, subject: 'other',
+    // DB.saveResult() xatoni yashiradi (.catch(()=>{})) — shu sabab bu yerda
+    // TO'G'RIDAN-TO'G'RI backendga so'rov yuboramiz, haqiqiy javobni ko'rish uchun.
+    const res = await fetch('/api/proxy?endpoint=result/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: uid, testId: 'debug_test_' + Date.now(), testTitle: 'DIAGNOSTIKA TEST',
+        userName: (finalUser && (finalUser.first_name || finalUser.name)) || '',
+        userUsername: (finalUser && finalUser.username) || '',
+        score: 1, correct: 1, total: 1, percentage: 100, passing_score: 60,
+      }),
     });
-    show('d-savetest', 'Yuborildi, id=' + id + '. Endi tekshiring: bir necha soniyadan keyin shu sahifani qayta oching, (7)-bo\'limda "DIAGNOSTIKA TEST" ko\'rinishi kerak.', 'ok');
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && !data.error) {
+      show('d-savetest', 'MUVAFFAQIYATLI. Server javobi:\n' + JSON.stringify(data, null, 2), 'ok');
+    } else {
+      show('d-savetest', 'SERVER XATO QAYTARDI (status ' + res.status + '):\n' + JSON.stringify(data, null, 2), 'bad');
+    }
   }catch(e){
-    show('d-savetest', 'XATO: ' + e.message, 'bad');
+    show('d-savetest', 'TARMOQ/JS XATOSI: ' + e.message, 'bad');
   }
 }
 </script>
