@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TestPro — Diagnostika</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:monospace;background:#0b0716;color:#e8e4f5;padding:1rem;font-size:.8rem;line-height:1.5;margin:0}
+  h2{color:#a78bfa;font-size:1rem;margin:1.4rem 0 .5rem;border-bottom:1px solid #332a55;padding-bottom:.3rem}
+  h2:first-child{margin-top:0}
+  pre{background:#161029;border:1px solid #332a55;border-radius:8px;padding:.7rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+  .ok{color:#4ade80}.bad{color:#f87171}.warn{color:#fbbf24}
+  .row{margin-bottom:.3rem}
+  button{background:#7c3aed;color:#fff;border:none;padding:.6rem 1rem;border-radius:8px;font-size:.85rem;margin-top:.5rem}
+</style>
+</head>
+<body>
+
+<h2>1) Joriy URL</h2>
+<pre id="d-url"></pre>
+
+<h2>2) Iframe holati</h2>
+<pre id="d-frame"></pre>
+
+<h2>3) localStorage 'tp_tg_user' (xom holatda)</h2>
+<pre id="d-raw"></pre>
+
+<h2>4) TGAuth.get() natijasi</h2>
+<pre id="d-tgauth"></pre>
+
+<h2>5) TGAuth.tryFromUrl() natijasi</h2>
+<pre id="d-fromurl"></pre>
+
+<h2>6) Hisoblangan UID (saveResult/getMyResults shuni ishlatadi)</h2>
+<pre id="d-uid"></pre>
+
+<h2>7) Backenddan (Supabase) natijalarni olish — GET /api/results/{uid}</h2>
+<pre id="d-remote">Yuklanmoqda...</pre>
+
+<h2>8) Sinov: shu UID bilan natija saqlab ko'rish</h2>
+<button onclick="testSave()">Test natija yuborish</button>
+<pre id="d-savetest">—</pre>
+
+<script src="js/api.js"></script>
+<script>
+function show(id, obj, cls){
+  const el = document.getElementById(id);
+  el.textContent = (typeof obj === 'string') ? obj : JSON.stringify(obj, null, 2);
+  if (cls) el.className = cls;
+}
+
+show('d-url', location.href);
+show('d-frame', {
+  in_iframe: window.top !== window.self,
+  is_shell_page: !!document.getElementById('tp-frames'),
+});
+
+const raw = localStorage.getItem('tp_tg_user');
+show('d-raw', raw || '(bo\'sh — hech narsa saqlanmagan)', raw ? 'ok' : 'bad');
+
+let cu = null;
+try { cu = TGAuth.get(); } catch(e){ show('d-tgauth', 'XATO: '+e.message, 'bad'); }
+if (cu !== null || raw) show('d-tgauth', cu, cu ? 'ok' : 'bad');
+else show('d-tgauth', '(TGAuth.get() null qaytardi)', 'bad');
+
+let fromUrl = null;
+try { fromUrl = TGAuth.tryFromUrl(); } catch(e){}
+show('d-fromurl', fromUrl || '(URL da uid/auto parametri topilmadi — bu normal, agar localStorage orqali kirgan bo\'lsangiz)');
+
+const finalUser = fromUrl || cu;
+const uid = finalUser ? String(finalUser.id || finalUser.uid || finalUser._tg_id || '') : '';
+show('d-uid', uid || '(UID ANIQLANMADI — bo\'sh satr)', uid ? 'ok' : 'bad');
+
+(async () => {
+  if (!uid) { show('d-remote', 'UID yo\'q, so\'rov yuborilmadi', 'bad'); return; }
+  try {
+    const res = await DB.getMyResults(uid, 200);
+    show('d-remote', { count: res.length, items: res }, 'ok');
+  } catch(e) {
+    show('d-remote', 'XATO: ' + e.message, 'bad');
+  }
+})();
+
+async function testSave(){
+  show('d-savetest', 'Yuborilmoqda...');
+  try{
+    const id = await DB.saveResult({
+      testId: 'debug_test', testTitle: 'DIAGNOSTIKA TEST',
+      correct: 1, total: 1, percentage: 100, subject: 'other',
+    });
+    show('d-savetest', 'Yuborildi, id=' + id + '. Endi tekshiring: bir necha soniyadan keyin shu sahifani qayta oching, (7)-bo\'limda "DIAGNOSTIKA TEST" ko\'rinishi kerak.', 'ok');
+  }catch(e){
+    show('d-savetest', 'XATO: ' + e.message, 'bad');
+  }
+}
+</script>
+</body>
+</html>
