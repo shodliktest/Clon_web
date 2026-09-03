@@ -1090,7 +1090,7 @@ const P    = new URLSearchParams(location.search);
 const TID  = (P.get('id') || '').trim().toUpperCase();
 const DEMO = P.get('demo') === '1';
 const DMAX = 20;
-const UID  = P.get('uid') || '';
+const UID  = P.get('uid') || (()=>{ try { const u=JSON.parse(localStorage.getItem('tp_tg_user')||'null'); return String(u?.id||u?.uid||''); } catch { return ''; } })();
 const UNAME= P.get('name') || ('User'+UID);
 const UUN  = P.get('uname') || '';
 
@@ -1191,34 +1191,39 @@ function _si(el,src){el.innerHTML=`<img src="${src}" style="width:100%;max-heigh
 async function boot(){
   if(!TID){showErr("URL da test ID yo'q");return}
   try{
-    let resp=_cl(TID);
-    if(!resp){
-      const ctrl=new AbortController();
-      const tmo=setTimeout(()=>ctrl.abort(),12000);
-      let r;
-      try{
-        r=await fetch(API+'?endpoint=test/'+TID+'/full',{signal:ctrl.signal,cache:'no-store'});
-      }catch(fe){
-        clearTimeout(tmo);
-        showErr(fe.name==='AbortError'
-          ?"Internet sekin — qayta urinib ko'ring"
-          :"Tarmoq xatosi — ulanishni tekshiring");
-        return;
-      }
+    // Access cheklovi serverda tekshirilishi uchun cache'dan oldin API ga boramiz.
+    const ctrl=new AbortController();
+    const tmo=setTimeout(()=>ctrl.abort(),12000);
+    let r;
+    try{
+      r=await fetch(API+'?endpoint=test/'+TID+'/full',{
+        signal:ctrl.signal,
+        cache:'no-store',
+        headers:{'X-TG-ID':String(UID||'')}
+      });
+    }catch(fe){
       clearTimeout(tmo);
-      resp=await r.json();
-      if(!resp||resp.error){
-        // Haqiqiy xato matnini ko'rsatamiz — "Test topilmadi" bilan
-        // yashirilgan bo'lsa, asl sabab (masalan Supabase sozlanmagan)
-        // hech qachon ko'rinmay qolar edi.
-        const realErr = (resp && resp.error) ? resp.error : ('Test topilmadi: '+TID);
-        showErr(realErr + (r.status ? ' (HTTP '+r.status+')' : ''));
-        return;
-      }
-      _cs(TID,resp);
+      showErr(fe.name==='AbortError'
+        ?"Internet sekin — qayta urinib ko'ring"
+        :"Tarmoq xatosi — ulanishni tekshiring");
+      return;
     }
+    clearTimeout(tmo);
+    const serverResp=await r.json();
+    if(!r.ok || !serverResp || serverResp.error){
+      if(serverResp && (serverResp.code==='ACCESS_DENIED' || serverResp.code==='TEST_STOPPED' || serverResp.code==='TEST_PAUSED')){
+        showAccessMessage(serverResp);
+      }else{
+        const realErr=(serverResp&&serverResp.error)?serverResp.error:('Test topilmadi: '+TID);
+        showErr(realErr + (r.status ? ' (HTTP '+r.status+')' : ''));
+      }
+      return;
+    }
+    // Server access berganidan keyin mavjud cache ishlatilishi mumkin.
+    resp=_cl(TID)||serverResp;
+    if(!resp || !resp.questions?.length) resp=serverResp;
+    _cs(TID,serverResp);
     meta=resp.testData||resp;
-
     let questions=norm(resp.questions||resp.testData?.questions||meta.questions||[]);
     if(!questions.length){showErr("Bu testda savollar yo'q");return}
 
@@ -1275,6 +1280,30 @@ async function boot(){
 function showErr(msg){
     const _bs=document.getElementById("bottom-stats");if(_bs)_bs.style.display="block";
   $('scr-load').innerHTML=`<div style="text-align:center;padding:2rem"><div style="font-size:2.5rem;margin-bottom:12px">⚠️</div><p style="color:rgba(44,74,122,.7);font-size:.9rem;margin-bottom:14px">${msg}</p><button onclick="history.back()" style="padding:11px 26px;border-radius:14px;background:linear-gradient(135deg,#4a90d9,#6bb0f0);border:none;color:#fff;font-family:inherit;font-weight:600;cursor:pointer">← Orqaga</button></div>`;
+}
+
+function showAccessMessage(info){
+  const _bs=document.getElementById('bottom-stats');if(_bs)_bs.style.display='block';
+  const code=info?.code||'ACCESS_DENIED';
+  const title=String(info?.title||TID).replace(/[<>]/g,'');
+  let text='';
+  if(code==='TEST_STOPPED'){
+    text=`⛔ TEST TO'XTATILGAN\n\n\"${title}\" testi hozir ishlamayapti.\n\nTest egasi yoki administrator testni qayta faollashtirgandan keyin undan foydalanishingiz mumkin.\n\nAgar bu testga kirish siz uchun muhim bo'lsa, ruxsat yoki test holati bo'yicha administratorga murojaat qiling.\n\n📩 Telegram: @Shodlikai`;
+  }else if(code==='TEST_PAUSED'){
+    text=`⏸ TEST VAQTINCHA TO'XTATILGAN\n\n\"${title}\" testi hozircha pauza qilingan.\n\nTest qayta yoqilgach undan foydalanishingiz mumkin.\n\nSavol yoki ruxsat bo'yicha administratorga murojaat qiling.\n\n📩 Telegram: @Shodlikai`;
+  }else{
+    text=`🔐 KIRISH CHEKLANGAN\n\n\"${title}\" testiga kirish uchun sizda ruxsat yo'q.\n\nBu cheklangan test. Unga faqat:\n• test egasi tomonidan allowed_users ro'yxatiga kiritilgan Telegram ID;\n• yoki faol Premium foydalanuvchi\nkira oladi.\n\nSizning Telegram ID'ingiz ruxsat ro'yxatida bo'lmasa, administratorga murojaat qilib ruxsat so'rashingiz mumkin.\n\n⭐ Premium faol bo'lsa, cheklangan testlarga ham kirish mumkin. Premium haqida ma'lumot yoki ruxsat olish uchun administratorga yozing.\n\n📩 Telegram: @Shodlikai`;
+  }
+  const safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  $('scr-load').innerHTML=`<div style="padding:1.1rem;max-width:560px;margin:0 auto">
+    <div style="background:rgba(255,255,255,.82);border:1px solid rgba(74,144,217,.22);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(44,74,122,.08)">
+      <pre style="margin:0;white-space:pre-wrap;word-break:break-word;text-align:left;font-family:monospace;font-size:.84rem;line-height:1.7;color:#243b5a">${safe}</pre>
+      <div style="display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+        <a href="https://t.me/Shodlikai" target="_blank" rel="noopener" style="text-decoration:none;padding:11px 18px;border-radius:14px;background:linear-gradient(135deg,#4a90d9,#6bb0f0);color:#fff;font-weight:600">📩 @Shodlikai ga yozish</a>
+        <button onclick="history.back()" style="padding:11px 18px;border-radius:14px;background:transparent;border:1px solid rgba(74,144,217,.3);color:#2c4a7a;font-family:inherit;font-weight:600;cursor:pointer">← Orqaga</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function updateHeader(){
@@ -1422,7 +1451,7 @@ async function finish(){
     try{
       const uA=qs.map((_,i)=>answers[i]!==null?answers[i]:-1);
       const res=await fetch(API+'?endpoint=result/save',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST',headers:{'Content-Type':'application/json','X-TG-ID':String(UID||'')},
         body:JSON.stringify({testId:TID,testTitle:meta?.title||TID,subject:meta?.category||meta?.subject||'',userId:UID,user_id:UID,userName:UNAME,user_name:UNAME,userUsername:UUN,user_username:UUN,score:pct,correct,total:tot,percentage:pct,passing_score:passScore,passed,elapsed,detailed_results:uA,userAnswers:uA,completedAt:new Date().toISOString(),source:DEMO?'web_demo':'web_test'})
       }).then(r=>r.json());
       if(res?.ok){
