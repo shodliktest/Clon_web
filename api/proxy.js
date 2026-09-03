@@ -234,6 +234,21 @@ function rowToMeta(row) {
   return f;
 }
 
+// Restricted test access: only explicitly allowed Telegram IDs or active Premium IDs.
+async function canAccessRestrictedTest(row, request) {
+  const allowed = Array.isArray(row?.meta?.allowed_users) ? row.meta.allowed_users : [];
+  if (!allowed.length) return true;
+  const uid = String(request.headers.get('X-TG-ID') || '').trim();
+  if (!/^\d+$/.test(uid)) return false;
+  if (new Set(allowed.map(String)).has(uid)) return true;
+  try {
+    const premium = await db.selectOne('premium_users', { user_id: uid }, 'user_id,expires_at');
+    if (!premium?.expires_at) return false;
+    const expires = new Date(premium.expires_at);
+    return Number.isFinite(expires.getTime()) && expires.getTime() > Date.now();
+  } catch { return false; }
+}
+
 // ── Rasm — Telegramni bepul CDN sifatida ishlatamiz ─────────────
 async function tgPost(method, body) {
   const res = await fetch(`${TG}/${method}`, {
@@ -354,6 +369,27 @@ export default async function handler(request) {
       const tid = ep.split('/')[1];
       const data = await db.selectOne('tests', { test_id: tid });
       if (!data || data.meta?.is_deleted) return jsonResp({ error: `Test topilmadi: ${tid}` }, 404);
+      if (data.is_active === false) {
+        return jsonResp({
+          error: "Bu test hozir to'xtatilgan. Test egasi yoki administrator qayta faollashtirgandan keyin kirishingiz mumkin.",
+          code: 'TEST_STOPPED',
+          title: data.title || tid,
+        }, 403);
+      }
+      if (data.is_paused === true) {
+        return jsonResp({
+          error: "Bu test hozircha vaqtincha to'xtatilgan (pauza qilingan). Test qayta yoqilgach kirishingiz mumkin.",
+          code: 'TEST_PAUSED',
+          title: data.title || tid,
+        }, 403);
+      }
+      if (!(await canAccessRestrictedTest(data, request))) {
+        return jsonResp({
+          error: "Bu testga kirish uchun ruxsat berilmagan. Faqat test egasi tomonidan allowed_users ro'yxatiga kiritilgan Telegram ID yoki faol Premium foydalanuvchi kira oladi.",
+          code: 'ACCESS_DENIED',
+          title: data.title || tid,
+        }, 403);
+      }
       const full  = rowToFull(data);
       const webQs = (full.questions || []).map((q, i) => botToWeb(q, i));
       const t = normMeta(full);
@@ -628,6 +664,11 @@ export default async function handler(request) {
       const finalUid = String(userId || user_id || '0');
       if (!finalUid || finalUid === '0' || !testId) {
         return jsonResp({ error: 'userId va testId kerak' });
+      }
+      const testRow = await db.selectOne('tests', { test_id: String(testId) }, 'test_id,title,meta');
+      if (!testRow || testRow.meta?.is_deleted) return jsonResp({ ok: false, error: 'Test topilmadi' }, 404);
+      if (!(await canAccessRestrictedTest(testRow, request))) {
+        return jsonResp({ ok: false, error: 'Bu testga kirish uchun ruxsat kerak.' }, 403);
       }
       const pct = parseFloat(percentage ?? score ?? 0);
       const rid = `${finalUid}_${testId}_${Date.now()}`;
