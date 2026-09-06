@@ -1273,7 +1273,7 @@ async function boot(){
     $('quizArea').style.alignItems='center';
 
     renderQ();
-    _liveCall('start', { title: meta.title || TID, total_q: qs.length });
+    _liveCall('start', { title: meta.title || TID, total_q: qs.length, name: UNAME, uname: UUN });
   }catch(e){console.error(e);showErr('Yuklanmadi: '+e.message)}
 }
 
