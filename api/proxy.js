@@ -719,18 +719,20 @@ export default async function handler(request) {
 
     // ══ LIVE MONITOR ═════════════════════════════════════════════
     if (ep === 'live/start' && request.method === 'POST') {
-      const { uid, tid, title, total_q } = body || {};
+      const { uid, tid, title, total_q, name, uname } = body || {};
       if (!uid || !tid) return jsonResp({ ok: false });
       await db.upsert('live_sessions', {
-        session_id: `web_${uid}_${tid}`,
-        user_id:    String(uid),
-        test_id:    tid,
-        test_title: title || tid,
-        source:     'web',
-        idx:        0,
-        total_q:    total_q || 0,
-        started_at: new Date().toISOString(),
-        last_seen:  new Date().toISOString(),
+        session_id:    `web_${uid}_${tid}`,
+        user_id:       String(uid),
+        test_id:       tid,
+        test_title:    title || tid,
+        user_name:     name || ('User' + uid),
+        user_username: uname || '',
+        source:        'web',
+        idx:           0,
+        total_q:       total_q || 0,
+        started_at:    new Date().toISOString(),
+        last_seen:     new Date().toISOString(),
       }, 'session_id');
       return jsonResp({ ok: true });
     }
