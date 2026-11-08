@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover"/>
 <title>TestPro — Web Test</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="js/fj.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
@@ -1090,9 +1091,21 @@ const P    = new URLSearchParams(location.search);
 const TID  = (P.get('id') || '').trim().toUpperCase();
 const DEMO = P.get('demo') === '1';
 const DMAX = 20;
-const UID  = P.get('uid') || '';
+/* Sayt orqali (login.html dan keyin) yoki Telegram Mini App ichida foydalanuvchini aniqlash */
+function _uidFromStore(){
+  try{ const u=JSON.parse(localStorage.getItem('tp_tg_user')||'null'); return u&&(u.id||u.uid)?String(u.id||u.uid):''; }catch{return ''}
+}
+function _uidFromTg(){
+  try{ const w=window.Telegram&&window.Telegram.WebApp; const u=w&&w.initDataUnsafe&&w.initDataUnsafe.user; return u&&u.id?String(u.id):''; }catch{return ''}
+}
+const UID  = P.get('uid') || _uidFromStore() || _uidFromTg();
 const UNAME= P.get('name') || ('User'+UID);
 const UUN  = P.get('uname') || '';
+function _authH(extra){
+  const h={'X-TG-ID':String(UID||'')};
+  try{ if(TG&&TG.initData) h['X-TG-INIT']=TG.initData; }catch{}
+  return {...h,...(extra||{})};
+}
 
 let qs=[], meta=null, answers=[], cur=0;
 let t0=0, tmr=null, att=0, cor=0, finished=false;
@@ -1197,7 +1210,7 @@ async function boot(){
       const tmo=setTimeout(()=>ctrl.abort(),12000);
       let r;
       try{
-        r=await fetch(API+'?endpoint=test/'+TID+'/full',{signal:ctrl.signal,cache:'no-store'});
+        r=await fetch(API+'?endpoint=test/'+TID+'/full',{signal:ctrl.signal,cache:'no-store',headers:_authH()});
       }catch(fe){
         clearTimeout(tmo);
         showErr(fe.name==='AbortError'
@@ -1207,12 +1220,19 @@ async function boot(){
       }
       clearTimeout(tmo);
       resp=await r.json();
+      if(resp && resp.code==='FORCE_JOIN' && window.FJ){
+        window.FJ.setUid(UID); window.FJ.show(resp.channels||[]); return;
+      }
       if(!resp||resp.error){
         // Haqiqiy xato matnini ko'rsatamiz — "Test topilmadi" bilan
         // yashirilgan bo'lsa, asl sabab (masalan Supabase sozlanmagan)
         // hech qachon ko'rinmay qolar edi.
+        if(resp && resp.code==='LOGIN_REQUIRED'){
+          showErr("Foydalanuvchi aniqlanmadi. Saytga Telegram orqali kiring (login) yoki testni bot ichidagi «🌐 Web test» tugmasi orqali oching.");
+          return;
+        }
         const realErr = (resp && resp.error) ? resp.error : ('Test topilmadi: '+TID);
-        showErr(realErr + (r.status ? ' (HTTP '+r.status+')' : ''));
+        showErr(realErr);
         return;
       }
       _cs(TID,resp);
@@ -1422,9 +1442,10 @@ async function finish(){
     try{
       const uA=qs.map((_,i)=>answers[i]!==null?answers[i]:-1);
       const res=await fetch(API+'?endpoint=result/save',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST',headers:_authH({'Content-Type':'application/json'}),
         body:JSON.stringify({testId:TID,testTitle:meta?.title||TID,subject:meta?.category||meta?.subject||'',userId:UID,user_id:UID,userName:UNAME,user_name:UNAME,userUsername:UUN,user_username:UUN,score:pct,correct,total:tot,percentage:pct,passing_score:passScore,passed,elapsed,detailed_results:uA,userAnswers:uA,completedAt:new Date().toISOString(),source:DEMO?'web_demo':'web_test'})
       }).then(r=>r.json());
+      if(res && res.code==='FORCE_JOIN' && window.FJ){ window.FJ.setUid(UID); window.FJ.show(res.channels||[]); }
       if(res?.ok){
         si.style.color='#059669';si.style.background='rgba(5,150,105,.07)';si.style.borderColor='rgba(5,150,105,.3)';
         si.textContent='✅ Natija saqlandi va statistikaga qo\'shildi!';
