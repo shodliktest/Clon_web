@@ -31,7 +31,7 @@ const REST          = `${SUPABASE_URL}/rest/v1`;
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-TG-ID',
+  'Access-Control-Allow-Headers': 'Content-Type, X-TG-ID, X-TG-INIT',
 };
 
 function jsonResp(data, status = 200) {
@@ -71,14 +71,29 @@ async function pgFetch(path, opts = {}) {
 
 const db = {
   /** filters: {col: value} → col=eq.value. columns: "a,b,c" yoki "*" */
-  async select(table, { columns = '*', filters = {}, limit = null, order = null } = {}) {
+  async select(table, { columns = '*', filters = {}, limit = null, order = null, extra = null } = {}) {
     const qs = new URLSearchParams();
     qs.set('select', columns);
     for (const [k, v] of Object.entries(filters)) qs.set(k, `eq.${v}`);
-    if (limit) qs.set('limit', String(limit));
+    if (extra) for (const [k, v] of Object.entries(extra)) qs.set(k, v);
     if (order) qs.set('order', order);
-    const res = await pgFetch(`/${table}?${qs.toString()}`);
-    return res.json();
+    if (limit) {
+      qs.set('limit', String(limit));
+      const res = await pgFetch(`/${table}?${qs.toString()}`);
+      return res.json();
+    }
+    // limit berilmagan → BARCHA qatorlar. PostgREST bir so'rovda ko'pi bilan 1000 qator
+    // qaytaradi (1000 dan keyingisi jim tushib qolardi) — shuning uchun sahifalab o'qiymiz.
+    const PAGE = 1000, out = [];
+    for (let off = 0; off < 100000; off += PAGE) {
+      qs.set('limit', String(PAGE));
+      qs.set('offset', String(off));
+      const res  = await pgFetch(`/${table}?${qs.toString()}`);
+      const rows = await res.json();
+      out.push(...rows);
+      if (rows.length < PAGE) break;
+    }
+    return out;
   },
   async selectOne(table, filters, columns = '*') {
     const rows = await db.select(table, { columns, filters, limit: 1 });
@@ -234,6 +249,192 @@ function rowToMeta(row) {
   return f;
 }
 
+
+// ══ FOYDALANUVCHINI ANIQLASH ═════════════════════════════════════
+// X-TG-INIT — Telegram Mini App initData (HMAC bilan TEKSHIRILADI, soxtalashtirib bo'lmaydi).
+// X-TG-ID   — tekshirilmagan (brauzerdan ochilganda), shuning uchun faqat zaxira sifatida.
+async function _hmac(keyBytes, msg) {
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg)));
+}
+const _hex = b => Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+async function verifyInitData(initData) {
+  if (!initData || !BOT_TOKEN) return null;
+  try {
+    const p = new URLSearchParams(initData);
+    const hash = p.get('hash');
+    if (!hash) return null;
+    p.delete('hash');
+    const dcs = Array.from(p.entries()).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      .map(([k, v]) => `${k}=${v}`).join('\n');
+    const secret = await _hmac(new TextEncoder().encode('WebAppData'), BOT_TOKEN);
+    if (_hex(await _hmac(secret, dcs)) !== hash) return null;
+    const authDate = parseInt(p.get('auth_date') || '0', 10);
+    if (!authDate || Date.now() / 1000 - authDate > 86400 * 7) return null;
+    const user = JSON.parse(p.get('user') || 'null');
+    return user && user.id ? String(user.id) : null;
+  } catch { return null; }
+}
+async function whoIs(request) {
+  const v = await verifyInitData(request.headers.get('X-TG-INIT') || '');
+  if (v) return { uid: v, verified: true };
+  const raw = String(request.headers.get('X-TG-ID') || '').trim();
+  return { uid: /^\d+$/.test(raw) ? raw : '', verified: false };
+}
+const isAdminUid = uid => !!uid && ADMIN_IDS.includes(String(uid));
+
+// ══ MAJBURIY OBUNA (serverda tekshiriladi — sahifani aylanib o'tib bo'lmaydi) ═══
+// Sozlama botdan: force_join_config (id=1), zaxira: app_settings.data.force_join
+let _fjCfg = { ts: 0, data: null };
+async function fjConfig() {
+  if (_fjCfg.data && Date.now() - _fjCfg.ts < 20000) return _fjCfg.data;
+  let data = { enabled: false, channels: [] };
+  try {
+    const row = await db.selectOne('force_join_config', { id: 1 });
+    if (!row) throw new Error('qator yo\'q');
+    data = { enabled: !!row.enabled, channels: row.channels || [] };
+  } catch {
+    try {
+      const a  = await db.selectOne('app_settings', { id: 1 }, 'data');
+      const fj = a && a.data && a.data.force_join;
+      if (fj) data = { enabled: !!fj.enabled, channels: fj.channels || [] };
+    } catch {}
+  }
+  _fjCfg = { ts: Date.now(), data };
+  return data;
+}
+const _fjMem = new Map();
+async function _tgIsMember(chatId, uid) {
+  try {
+    const r = await tgPost('getChatMember', { chat_id: chatId, user_id: Number(uid) });
+    if (!r || !r.ok) return null;                      // tekshirib bo'lmadi (bot kanalda admin emas)
+    const st = r.result && r.result.status;
+    if (st === 'left' || st === 'kicked') return false;
+    if (st === 'restricted' && r.result.is_member === false) return false;
+    return true;
+  } catch { return null; }
+}
+async function fjStatus(uid, fresh = false) {
+  const cfg = await fjConfig();
+  if (!cfg.enabled || !cfg.channels.length) return { enforced: false, ok: true, missing: [] };
+  if (isAdminUid(uid)) return { enforced: true, ok: true, missing: [] };
+  if (!uid) return { enforced: true, ok: false, missing: cfg.channels, noUid: true };
+  const hit = _fjMem.get(uid);
+  if (!fresh && hit && Date.now() - hit.ts < (hit.ok ? 60000 : 5000)) {
+    return { enforced: true, ok: hit.ok, missing: hit.missing };
+  }
+  const missing = [];
+  for (const ch of cfg.channels) {
+    if ((await _tgIsMember(ch.id, uid)) === false) missing.push(ch);
+  }
+  const ok = missing.length === 0;
+  _fjMem.set(uid, { ts: Date.now(), ok, missing });
+  return { enforced: true, ok, missing };
+}
+const _chLink = new Map();
+async function channelLink(ch) {
+  if (ch.invite) return ch.invite;
+  if (_chLink.has(ch.id)) return _chLink.get(ch.id);
+  let link = '';
+  try {
+    const r = await tgPost('getChat', { chat_id: ch.id });
+    if (r && r.result) link = r.result.username ? `https://t.me/${r.result.username}` : (r.result.invite_link || '');
+  } catch {}
+  _chLink.set(ch.id, link);
+  return link;
+}
+async function fjPayload(st) {
+  return {
+    code: 'FORCE_JOIN',
+    error: "Avval majburiy kanallarga a'zo bo'ling",
+    channels: await Promise.all((st.missing || []).map(async c => ({
+      id: c.id, title: c.title || String(c.id), url: await channelLink(c),
+    }))),
+  };
+}
+/** → null (ruxsat) yoki Response (rad). */
+async function fjGuard(request) {
+  const who = await whoIs(request);
+  const st  = await fjStatus(who.uid);
+  if (st.ok) return null;
+  if (st.noUid) return jsonResp({ error: 'Avval Telegram orqali kiring', code: 'LOGIN_REQUIRED' }, 401);
+  return jsonResp(await fjPayload(st), 403);
+}
+
+// ══ "KIM YECHGAN" snapshoti: JSON Statistika kanalida, Supabase'da faqat indeks (test_solvers_index) ══
+const _snapCache = new Map();           // file_id -> JSON (kanaldagi fayl o'zgarmas; yangilansa file_id ham yangilanadi)
+async function channelJson(fileId) {
+  try {
+    if (!fileId) return null;
+    if (_snapCache.has(fileId)) return _snapCache.get(fileId);
+    const f    = await tgPost('getFile', { file_id: fileId });
+    const path = f && f.result && f.result.file_path;
+    if (!path) return null;
+    const res  = await fetch(`https://api.telegram.org/file/bot${BOT_TOKEN}/${path}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (_snapCache.size > 200) _snapCache.clear();
+    _snapCache.set(fileId, data);
+    return data;
+  } catch { return null; }
+}
+async function solversSnapshot(tid) {
+  try {
+    const idx = await db.selectOne('test_solvers_index', { test_id: tid });
+    if (!idx || !idx.file_id) return null;
+    const snap = await channelJson(idx.file_id);
+    return snap && String(snap.test_id) === String(tid) ? snap : null;
+  } catch { return null; }
+}
+
+// ══ TESTLAR ARXIVI: 14 kun ochilmagan testning savollari Supabase'dan olinadi, Telegram "Testlar"
+//    kanalidagi JSON da turadi. Murojaat bo'lsa — kanaldan o'qilib Supabase'ga QAYTARILADI.
+const _touchMap = new Map();
+function touchTest(tid) {                // "oxirgi murojaat" — bir instansiyada 6 soatda ko'pi bilan bir marta
+  const now = Date.now();
+  if (now - (_touchMap.get(tid) || 0) < 6 * 3600 * 1000) return;
+  _touchMap.set(tid, now);
+  db.upsert('test_archive_index', { test_id: tid, last_access_at: new Date().toISOString() }, 'test_id').catch(() => {});
+}
+const _restoring = new Map();
+async function restoreArchived(tid) {    // → savollar ro'yxati yoki null
+  if (_restoring.has(tid)) return _restoring.get(tid);
+  const job = (async () => {
+    try {
+      const idx = await db.selectOne('test_archive_index', { test_id: tid });
+      if (!idx || !idx.file_id) return null;
+      const data = await channelJson(idx.file_id);
+      const qs = data && data.test && data.test.questions;
+      if (!data || String(data.test_id) !== String(tid) || !Array.isArray(qs) || !qs.length) return null;
+      await db.update('tests', { test_id: tid }, { questions: qs, question_count: qs.length });
+      await db.update('test_archive_index', { test_id: tid },
+        { archived: false, last_access_at: new Date().toISOString(), saved_at: new Date().toISOString() });
+      return qs;
+    } catch { return null; }
+  })();
+  _restoring.set(tid, job);
+  try { return await job; } finally { _restoring.delete(tid); }
+}
+/** Qator savolsiz (sovutilgan) bo'lsa kanaldan tiklaydi. → yangilangan qator yoki null (tiklab bo'lmadi) */
+async function ensureQuestions(row) {
+  const has = Array.isArray(row.questions) && row.questions.length > 0;
+  if (has || !(Number(row.question_count) > 0)) { touchTest(row.test_id); return row; }
+  const qs = await restoreArchived(row.test_id);
+  if (!qs) return null;
+  touchTest(row.test_id);
+  return { ...row, questions: qs };
+}
+
+// ══ EGALIK: faqat test egasi yoki admin o'zgartira oladi ═════════
+async function requireOwner(request, row) {
+  const who = await whoIs(request);
+  if (!who.uid) return jsonResp({ error: 'Telegram ID kerak — qaytadan kiring', code: 'LOGIN_REQUIRED' }, 401);
+  if (isAdminUid(who.uid)) return null;
+  const owner = String(rowToFull(row).creator_id || '');
+  if (owner && owner === who.uid) return null;
+  return jsonResp({ error: "Faqat test egasi o'zgartira oladi", code: 'NOT_OWNER' }, 403);
+}
+
 // Restricted test access: only explicitly allowed Telegram IDs or active Premium IDs.
 async function canAccessRestrictedTest(row, request) {
   const allowed = Array.isArray(row?.meta?.allowed_users) ? row.meta.allowed_users : [];
@@ -341,6 +542,7 @@ export default async function handler(request) {
 
     // ── tests/public ────────────────────────────────────────────
     if (ep === 'tests/public') {
+      const _g = await fjGuard(request); if (_g) return _g;
       const data = await db.select('tests', {
         columns: 'test_id,title,meta,question_count,is_active,is_paused,solve_count,avg_score',
         filters: { is_active: true, is_paused: false },
@@ -366,9 +568,25 @@ export default async function handler(request) {
 
     // ── test/{id}/full ──────────────────────────────────────────
     if (ep.match(/^test\/[^/]+\/full$/)) {
+      const _g = await fjGuard(request); if (_g) return _g;
       const tid = ep.split('/')[1];
-      const data = await db.selectOne('tests', { test_id: tid });
+      let data = await db.selectOne('tests', { test_id: tid });
       if (!data || data.meta?.is_deleted) return jsonResp({ error: `Test topilmadi: ${tid}` }, 404);
+      // Tahrirlash rejimi (?edit=1): test EGASI yoki ADMIN to'xtatilgan / pauzadagi / cheklangan testni ham ocha oladi.
+      let _editor = false;
+      if (url.searchParams.get('edit') === '1') {
+        const _w = await whoIs(request);
+        _editor = !!_w.uid && (isAdminUid(_w.uid) || String(rowToFull(data).creator_id || '') === _w.uid);
+      }
+      if (_editor) {
+        data = await ensureQuestions(data);       // sovutilgan test (14 kun ochilmagan) — kanaldan tiklanadi
+        if (!data) return jsonResp({ error: "Test arxivdan tiklanmadi, birozdan keyin qayta urinib ko'ring", code: 'ARCHIVE_UNAVAILABLE' }, 503);
+        const full = rowToFull(data);
+        const webQs = (full.questions || []).map((q, i) => botToWeb(q, i));
+        const t = normMeta(full);
+        t.id = t.id || tid; t.test_id = t.test_id || tid;
+        return jsonResp({ testData: t, questions: webQs, total: webQs.length, editor: true });
+      }
       if (data.is_active === false) {
         return jsonResp({
           error: "Bu test hozir to'xtatilgan. Test egasi yoki administrator qayta faollashtirgandan keyin kirishingiz mumkin.",
@@ -390,11 +608,113 @@ export default async function handler(request) {
           title: data.title || tid,
         }, 403);
       }
+      // Kirish ruxsat etilgan — sovutilgan bo'lsa savollar Telegram kanalidan qaytariladi
+      data = await ensureQuestions(data);
+      if (!data) return jsonResp({ error: "Test arxivdan tiklanmadi, birozdan keyin qayta urinib ko'ring", code: 'ARCHIVE_UNAVAILABLE' }, 503);
       const full  = rowToFull(data);
       const webQs = (full.questions || []).map((q, i) => botToWeb(q, i));
       const t = normMeta(full);
       t.id = t.id || tid; t.test_id = t.test_id || tid;
       return jsonResp({ testData: t, questions: webQs, total: webQs.length });
+    }
+
+    // ── fj/check — majburiy obuna holati (sahifa ko'rsatish uchun) ──
+    if (ep === 'fj/check') {
+      const who = await whoIs(request);
+      const uid = who.uid || String(url.searchParams.get('uid') || '').replace(/\D/g, '');
+      const st  = await fjStatus(uid, url.searchParams.get('fresh') === '1');
+      return jsonResp({
+        enforced: st.enforced, ok: st.ok,
+        channels: st.ok ? [] : (await fjPayload(st)).channels,
+      });
+    }
+
+    // ── test/{id}/solvers — KIM YECHGAN (avval bu yo'nalish umuman yo'q edi → doim "hech kim") ──
+    if (ep.match(/^test\/[^/]+\/solvers$/)) {
+      const tid = ep.split('/')[1];
+      const by  = new Map();
+      const snap = await solversSnapshot(tid);
+      if (snap) {
+        // Asosiy manba — Statistika kanalidagi snapshot (bot + web natijalari birga)
+        for (const [uid, rec] of Object.entries(snap.users || {})) {
+          const b = rec.bot || {}, w = rec.web || {};
+          const ba = Number(b.attempts) || 0, wa = Number(w.attempts) || 0;
+          by.set(String(uid), {
+            user_id: String(uid), name: rec.name || '', username: rec.username || '',
+            attempts: ba + wa,
+            sum: (Number(b.avg_score) || 0) * ba + (Number(w.avg_score) || 0) * wa,
+            best: Math.max(Number(b.best_score) || 0, Number(w.best_score) || 0),
+          });
+        }
+      }
+      // Zaxira usul: snapshot hali yo'q bo'lsa — to'g'ridan-to'g'ri results (web) va user_stats (bot) dan
+      const rows = snap ? [] : await db.select('results', {
+        columns: 'user_id,user_name,user_username,percentage,completed_at',
+        filters: { test_id: tid },
+      });
+      for (const r of rows || []) {
+        const k = String(r.user_id);
+        const e = by.get(k) || { user_id: k, name: '', username: '', attempts: 0, sum: 0, best: 0 };
+        const pc = Number(r.percentage) || 0;
+        e.attempts += 1; e.sum += pc; e.best = Math.max(e.best, pc);
+        if (!e.name && r.user_name) e.name = r.user_name;
+        if (!e.username && r.user_username) e.username = r.user_username;
+        by.set(k, e);
+      }
+      // 2) bot statistikasi (user_stats.data[test_id]) — testni BOSHLAGAN, lekin tugatmaganlar ham
+      if (!snap) try {
+        const qs = new URLSearchParams();
+        qs.set('select', 'tg_id,data');
+        qs.set('data->>' + tid, 'not.is.null');
+        const st = await (await pgFetch(`/user_stats?${qs.toString()}`)).json();
+        for (const row of st || []) {
+          const s2 = row.data && row.data[tid];
+          if (!s2) continue;
+          const k = String(row.tg_id);
+          const e = by.get(k) || { user_id: k, name: '', username: '', attempts: 0, sum: 0, best: 0 };
+          const sa = Number(s2.attempts) || 0;
+          if (sa > e.attempts) { e.attempts = sa; e.sum = (Number(s2.avg_score) || 0) * sa; }
+          e.best = Math.max(e.best, Number(s2.best_score) || 0);
+          by.set(k, e);
+        }
+      } catch {}
+      // 2b) web'da boshlangan, lekin hali TUGATILMAGAN urinishlar (live_sessions).
+      //     So'nggi 10 daqiqada faollik bo'lsa — «yechmoqda», undan uzoq bo'lsa — «yarim qoldi».
+      //     Bu urinish hisoblanmaydi (attempts ga qo'shilmaydi): tugatganda alohida natija bo'ladi, ikki marta sanalmaydi.
+      const ABANDON_MS = 10 * 60 * 1000;
+      try {
+        const live = await db.select('live_sessions', {
+          columns: 'user_id,user_name,user_username,idx,total_q,started_at,last_seen',
+          filters: { test_id: tid },
+        });
+        for (const l of live || []) {
+          const k = String(l.user_id);
+          const e = by.get(k) || { user_id: k, name: '', username: '', attempts: 0, sum: 0, best: 0 };
+          if (!e.name && l.user_name) e.name = l.user_name;
+          if (!e.username && l.user_username) e.username = l.user_username;
+          const age = Date.now() - new Date(l.last_seen || l.started_at || 0).getTime();
+          e.live = { status: age < ABANDON_MS ? 'solving' : 'abandoned', idx: Number(l.idx) || 0, total_q: Number(l.total_q) || 0, last_seen: l.last_seen };
+          by.set(k, e);
+        }
+      } catch {}
+      // 3) ismlar — users jadvalidan
+      const need = Array.from(by.values()).filter(e => !e.name).map(e => e.user_id).filter(x => /^\d+$/.test(x));
+      for (let i = 0; i < need.length; i += 100) {
+        try {
+          const chunk = need.slice(i, i + 100);
+          const us = await (await pgFetch(`/users?select=tg_id,data&tg_id=in.(${chunk.join(',')})`)).json();
+          for (const u of us || []) {
+            const e = by.get(String(u.tg_id));
+            if (e) { e.name = (u.data && u.data.name) || ''; e.username = e.username || (u.data && u.data.username) || ''; }
+          }
+        } catch {}
+      }
+      const solvers = Array.from(by.values()).map(e => ({
+        user_id: e.user_id, name: e.name || ('User ' + e.user_id), username: e.username || '',
+        attempts: e.attempts, avg_score: e.attempts ? e.sum / e.attempts : 0, best_score: e.best,
+        status: e.live ? e.live.status : '', progress: e.live ? e.live.idx + 1 : 0, total_q: e.live ? e.live.total_q : 0,
+      })).sort((a, b) => (b.attempts > 0) - (a.attempts > 0) || b.best_score - a.best_score);
+      return jsonResp({ ok: true, solvers });
     }
 
     // ── test/{id}/meta ──────────────────────────────────────────
@@ -428,10 +748,12 @@ export default async function handler(request) {
       const tid = ep.split('/')[1];
       const old = await db.selectOne('tests', { test_id: tid });
       if (!old) return jsonResp({ error: 'Test topilmadi' }, 404);
+      { const _o = await requireOwner(request, old); if (_o) return _o; }
       const questions = (body?.questions || []).map(q => webToBot(q));
       await db.update('tests', { test_id: tid }, {
         questions,
         question_count: questions.length,
+        updated_at: new Date().toISOString(),       // bot Testlar kanalidagi nusxani yangilaydi
       });
       return jsonResp({ ok: true, question_count: questions.length, old_count: (old.questions || []).length });
     }
@@ -441,6 +763,7 @@ export default async function handler(request) {
       const tid = ep.split('/')[1];
       const old = await db.selectOne('tests', { test_id: tid }, 'meta,is_active');
       if (!old) return jsonResp({ error: 'Test topilmadi' }, 404);
+      { const _o = await requireOwner(request, old); if (_o) return _o; }
 
       const allowedMeta = ['title','category','subject','difficulty','visibility','time_limit',
                             'poll_time','passing_score','max_attempts','shuffle_questions',
@@ -456,7 +779,7 @@ export default async function handler(request) {
       if (body && 'is_active' in body)  topPatch.is_active  = !!body.is_active;
       if (body && 'is_paused' in body)  topPatch.is_paused  = !!body.is_paused;
 
-      await db.update('tests', { test_id: tid }, { meta: newMeta, ...topPatch });
+      await db.update('tests', { test_id: tid }, { meta: newMeta, ...topPatch, updated_at: new Date().toISOString() });
       return jsonResp({ ok: true, updates: { ...metaPatch, ...topPatch } });
     }
 
@@ -465,6 +788,7 @@ export default async function handler(request) {
       const tid = ep.split('/')[1];
       const old = await db.selectOne('tests', { test_id: tid }, 'meta');
       if (!old) return jsonResp({ error: 'Test topilmadi' }, 404);
+      { const _o = await requireOwner(request, old); if (_o) return _o; }
       const newMeta = { ...(old.meta || {}), is_deleted: true };
       await db.update('tests', { test_id: tid }, { meta: newMeta });
       return jsonResp({ ok: true, deleted: tid, soft: true });
@@ -473,8 +797,11 @@ export default async function handler(request) {
     // ── test/{id}/split — testni bo'laklarga bo'lish ────────────
     if (ep.match(/^test\/[^/]+\/split$/) && request.method === 'POST') {
       const tid = ep.split('/')[1];
-      const row = await db.selectOne('tests', { test_id: tid });
+      let row = await db.selectOne('tests', { test_id: tid });
       if (!row) return jsonResp({ error: 'Test topilmadi' }, 404);
+      { const _o = await requireOwner(request, row); if (_o) return _o; }
+      row = await ensureQuestions(row);
+      if (!row) return jsonResp({ error: "Test arxivdan tiklanmadi", code: 'ARCHIVE_UNAVAILABLE' }, 503);
       const full = rowToFull(row);
       if (!full.questions?.length) return jsonResp({ error: 'Savollar topilmadi' }, 404);
 
@@ -530,12 +857,16 @@ export default async function handler(request) {
               timeLimit, passScore, shuffleQuestions, showResult, questionCount,
               authorName, questions, difficulty, poll_time, max_attempts } = body || {};
       if (!title) return jsonResp({ error: 'Title kerak' }, 400);
+      // Egasi — so'rovdan tekshirilgan foydalanuvchi (klient yuborgan authorId ga ishonilmaydi).
+      // Aks holda creator_id 0 bo'lib qoladi va test hech kim tomonidan tahrirlanmaydi/o'chirilmaydi.
+      const _who = await whoIs(request);
+      if (!_who.uid) return jsonResp({ error: "Test yaratish uchun Telegram orqali kiring", code: 'LOGIN_REQUIRED' }, 401);
       const tid = Array.from(crypto.getRandomValues(new Uint8Array(4)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 
       const qs = (questions || []).map(q => webToBot(q));
       const meta = {
-        creator_id:       parseInt(authorId) || 0,
+        creator_id:       parseInt(_who.uid) || 0,
         creator_name:     authorName || '',
         category:         category || subject || 'Boshqa',
         subject:          subject || category || 'Boshqa',
@@ -654,6 +985,7 @@ export default async function handler(request) {
 
     // ── result/save ─────────────────────────────────────────────
     if (ep === 'result/save' && request.method === 'POST') {
+      const _g = await fjGuard(request); if (_g) return _g;
       const {
         userId, user_id, testId, testTitle, subject,
         userName, user_name, userUsername, user_username,
@@ -714,7 +1046,36 @@ export default async function handler(request) {
       const data = await db.select('results', {
         filters: { user_id: uid }, order: 'completed_at.desc', limit: 200,
       });
-      return jsonResp(data || []);
+      // Botda (Telegram nativ) yechilgan testlar: Statistika kanalidagi tahlil indeksidan —
+      // har test uchun OXIRGI urinish. Batafsil tahlil: analysis/{uid}/{test_id}
+      let bot = [];
+      try {
+        const an = await db.select('user_analysis', {
+          columns: 'test_id,title,percentage,correct,total,updated_at',
+          filters: { user_id: uid }, order: 'updated_at.desc', limit: 100,
+        });
+        bot = (an || []).map(a => ({
+          result_id: 'bot_' + a.test_id, user_id: uid, test_id: a.test_id,
+          test_title: a.title || a.test_id, percentage: Number(a.percentage) || 0,
+          correct: a.correct || 0, total: a.total || 0, source: 'bot', has_analysis: true,
+          completed_at: a.updated_at,
+        }));
+      } catch {}
+      return jsonResp([...(data || []), ...bot]);
+    }
+
+    // ── analysis/{uid}/{test_id} — botda yechilgan test BATAFSIL tahlili (kanaldagi JSON dan) ──
+    if (ep.match(/^analysis\/\d+\/[^/]+$/)) {
+      const [, uid, tid] = ep.split('/');
+      const who = await whoIs(request);
+      if (!who.uid) return jsonResp({ error: 'Avval Telegram orqali kiring', code: 'LOGIN_REQUIRED' }, 401);
+      if (who.uid !== uid && !isAdminUid(who.uid)) return jsonResp({ error: "Bu tahlil sizniki emas", code: 'NOT_OWNER' }, 403);
+      const _g = await fjGuard(request); if (_g) return _g;
+      const idx = await db.selectOne('user_analysis', { user_id: uid, test_id: tid });
+      if (!idx || !idx.file_id) return jsonResp({ error: 'Tahlil topilmadi' }, 404);
+      const data = await channelJson(idx.file_id);
+      if (!data || String(data.user_id) !== String(uid)) return jsonResp({ error: 'Tahlil faylini o\'qib bo\'lmadi' }, 502);
+      return jsonResp(data);
     }
 
     // ══ LIVE MONITOR ═════════════════════════════════════════════
