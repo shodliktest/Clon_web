@@ -120,7 +120,16 @@ function timeStr(ts){
 
   /* Natijani localStorage dan olish (test.html natija saqlagan joy) */
   const allResults = JSON.parse(localStorage.getItem('tp_results') || '[]');
-  const R = allResults.find(function(r){ return r.id === id; });
+  let R = allResults.find(function(r){ return r.id === id; });
+  if(!R){
+    // Boshqa qurilmada yechilgan natija: serverdagi ro'yxatdan qidiramiz
+    try{
+      const CU = await AuthHelpers.getCurrentUser();
+      const uid = CU ? String(CU.id||CU.uid||CU._tg_id||'') : '';
+      const rem = await DB.getMyResults(uid, 0);
+      R = rem.find(function(r){ return String(r.id) === String(id); });
+    }catch(e){}
+  }
   if(!R){
     wrap.innerHTML='<div class="err-box"><h3 style="font-size:1.05rem;margin-bottom:.5rem">Natija topilmadi</h3>'+
       '<p style="font-size:.82rem;color:var(--text3);margin-bottom:.6rem">Bu natija mavjud emas yoki o\'chirilgan</p>'+

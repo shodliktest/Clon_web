@@ -39,6 +39,8 @@ create table if not exists live_sessions (
   user_id     text not null,
   test_id     text not null,
   test_title  text,
+  user_name      text,
+  user_username  text,
   source      text default 'web',   -- 'web' | 'bot_inline' | 'bot_poll'
   idx         integer default 0,
   total_q     integer default 0,

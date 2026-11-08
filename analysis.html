@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TestPro — Batafsil tahlil</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
+<link href="css/style.css" rel="stylesheet"/>
+<style>
+/* ── Faqat shu sahifaga xos: natija doirasi, savol kartasi ── */
+.summary{background:var(--card);border-radius:22px;padding:1.3rem;margin-bottom:1.2rem;
+  border:1px solid var(--border);box-shadow:var(--shadow)}
+.sum-top{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.sum-circle{width:76px;height:76px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;border:4px solid var(--p1);position:relative}
+.sum-circle.pass{border-color:var(--good);background:var(--good-bg)}
+.sum-circle.fail{border-color:var(--bad);background:var(--bad-bg)}
+.sum-pct{font-family:'Unbounded',sans-serif;font-size:1.42rem;font-weight:900;line-height:1}
+.sum-circle.pass .sum-pct{color:var(--good)}
+.sum-circle.fail .sum-pct{color:var(--bad)}
+.sum-lbl{font-size:.57rem;font-weight:800;letter-spacing:.06em;opacity:.7;margin-top:.15rem}
+.sum-info{flex:1;min-width:0}
+.sum-title{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;margin-bottom:.25rem;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.sum-sub{font-size:.74rem;color:var(--text3)}
+.pass-tag{display:inline-flex;align-items:center;gap:.32rem;margin-top:.6rem;padding:.24rem .68rem;
+  border-radius:99px;font-size:.72rem;font-weight:800}
+.tag-pass{background:var(--good-bg);color:var(--good);border:1px solid rgba(5,150,105,.22)}
+.tag-fail{background:var(--bad-bg);color:var(--bad);border:1px solid rgba(220,38,38,.22)}
+.sum-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem}
+.ss{background:var(--bg-deep);border-radius:12px;padding:.6rem .35rem;text-align:center;border:1px solid var(--border-soft)}
+.ssv{font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:900;color:var(--p1)}
+.ssl{font-size:.57rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:800;margin-top:.1rem}
+.prog{background:var(--border-soft);border-radius:99px;height:7px;margin:.85rem 0 .55rem;overflow:hidden}
+.prog-b{height:100%;background:linear-gradient(120deg,var(--p1),var(--p2));border-radius:99px;
+  transition:width 1s cubic-bezier(.2,.8,.2,1)}
+
+.sec-t{font-size:.92rem;font-weight:800;margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem}
+.qc{background:var(--card);border-radius:18px;padding:1.05rem;margin-bottom:.8rem;
+  border:1.5px solid var(--border);box-shadow:var(--shadow-sm)}
+.qc.q-ok{border-color:rgba(5,150,105,.28)}
+.qc.q-err{border-color:rgba(220,38,38,.28)}
+.qc.q-skip{border-color:rgba(217,119,6,.28)}
+.q-hdr{display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.78rem}
+.q-badge{width:28px;height:28px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;font-weight:900;font-family:'Unbounded',sans-serif;color:#fff}
+.qc.q-ok .q-badge{background:var(--good)}
+.qc.q-err .q-badge{background:var(--bad)}
+.qc.q-skip .q-badge{background:var(--warn)}
+.q-text{font-size:.89rem;font-weight:700;line-height:1.52;flex:1}
+.opt{display:flex;align-items:center;gap:.62rem;padding:.65rem .8rem;border-radius:12px;
+  border:1.5px solid var(--border);margin-bottom:.4rem;font-size:.84rem;font-weight:500;color:var(--text2)}
+.opt-ok{border-color:rgba(5,150,105,.35)!important;background:var(--good-bg)!important;color:var(--good)!important;font-weight:700}
+.opt-err{border-color:rgba(220,38,38,.35)!important;background:var(--bad-bg)!important;color:var(--bad)!important;font-weight:700}
+.opt-lt{width:25px;height:25px;border-radius:50%;border:2px solid currentColor;display:flex;
+  align-items:center;justify-content:center;font-size:.67rem;font-weight:900;flex-shrink:0}
+.opt-ok .opt-lt{background:var(--good);color:#fff;border-color:var(--good)}
+.opt-err .opt-lt{background:var(--bad);color:#fff;border-color:var(--bad)}
+.expl{margin-top:.6rem;padding:.65rem .8rem;border-radius:11px;background:var(--border-soft);
+  border-left:3px solid var(--p1);font-size:.78rem;color:var(--text2);line-height:1.58}
+.skip-notice{text-align:center;padding:.65rem;font-size:.78rem;color:var(--warn);
+  background:var(--warn-bg);border-radius:10px;border:1px solid rgba(217,119,6,.22);margin-top:.35rem}
+.warn-box{padding:.75rem .95rem;background:var(--warn-bg);border:1px solid rgba(217,119,6,.22);
+  border-radius:12px;font-size:.78rem;color:var(--warn);font-weight:700;margin-bottom:.9rem}
+.err-box{background:var(--card);border-radius:22px;padding:1.7rem;text-align:center;border:1px solid var(--border)}
+.deleted-tag{font-size:.72rem;color:var(--warn);font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div class="mesh-extra"></div>
+
+<nav class="nav">
+  <div class="logo" onclick="goTo('index.html')">
+    <div class="logo-mk"><span>🎓</span></div>
+    <span class="logo-tx">TestPro</span>
+  </div>
+  <div class="nav-r">
+    <button class="btn btn-secondary btn-sm" onclick="goTo('history.html')">← Tarixga</button>
+    <button class="ibtn" id="tbtn">🌙</button>
+  </div>
+</nav>
+
+<div class="page">
+<div class="w">
+  <div id="content"><div class="sp-wrap"><div class="sp"><i></i><i></i></div></div></div>
+</div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script>
+function elapsed2s(s){ s=s||0; return Math.floor(s/60)+'d '+String(s%60).padStart(2,'0')+'s'; }
+function timeStr(ts){
+  if(!ts) return '';
+  try{ const d=new Date(ts);
+    return d.toLocaleDateString('uz-UZ',{day:'numeric',month:'long',year:'numeric'})+' • '+d.toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){ return ''; }
+}
+function strip(s){ return String(s==null?'':s).replace(/^\s*[A-Za-zА-Яа-я]\s*[\)\.\:]\s*/,'').trim(); }
+function idxOf(v, opts){
+  if(v===null||v===undefined||v==='') return -1;
+  if(typeof v==='number') return v;
+  const t=strip(v); const i=opts.findIndex(function(o){return strip(o)===t || String(o).trim()===String(v).trim();});
+  return i;
+}
+function ansText(v, opts){
+  if(v===null||v===undefined||v==='') return '—';
+  if(typeof v==='number' && opts[v]!=null) return strip(opts[v]);
+  return strip(v);
+}
+function fail(wrap, title, msg){
+  wrap.innerHTML='<div class="err-box"><h3 style="font-size:1.05rem;margin-bottom:.5rem">'+esc(title)+'</h3>'+
+    '<p style="font-size:.82rem;color:var(--text3);margin-bottom:.6rem">'+esc(msg||'')+'</p>'+
+    '<button class="btn btn-primary" onclick="goTo(\'history.html\')">← Orqaga</button></div>';
+}
+(async()=>{
+  const wrap=document.getElementById('content');
+  const tid=new URLSearchParams(location.search).get('tid');
+  if(!tid){ fail(wrap,'❌ Test ID topilmadi'); return; }
+  let CU=null; try{ CU=await AuthHelpers.requireAuth(); }catch(e){}
+  const uid = CU ? String(CU.id||CU.uid||CU._tg_id||'') : '';
+  if(!uid){ fail(wrap,'Avval kiring','Tahlilni ko\'rish uchun Telegram orqali kiring'); return; }
+
+  let D=null;
+  try{
+    const h={'Content-Type':'application/json','X-TG-ID':uid};
+    try{ const tg=window.Telegram&&Telegram.WebApp; if(tg&&tg.initData) h['X-TG-INIT']=tg.initData; }catch(e){}
+    const res=await fetch('/api/proxy?endpoint=analysis/'+encodeURIComponent(uid)+'/'+encodeURIComponent(tid),{headers:h,cache:'no-store'});
+    const j=await res.json().catch(function(){return {}});
+    if(res.status===403 && j.code==='FORCE_JOIN' && window.FJ){ window.FJ.show(j.channels||[]); return; }
+    if(!res.ok){ fail(wrap,'Tahlil topilmadi', j.error||('HTTP '+res.status)); return; }
+    D=j;
+  }catch(e){ fail(wrap,'Yuklanmadi',e.message); return; }
+
+  const det=D.detailed||[];
+  const total=D.total||det.length;
+  const correct=D.correct||det.filter(function(x){return x.is_correct}).length;
+  const pct=Math.round(D.percentage||0);
+  const passed=pct>=60;
+  wrap.innerHTML =
+    '<div class="summary">'+
+      '<div class="sum-top">'+
+        '<div class="sum-circle '+(passed?'pass':'fail')+'"><div class="sum-pct">'+pct+'%</div><div class="sum-lbl">NATIJA</div></div>'+
+        '<div class="sum-info">'+
+          '<div class="sum-title">'+esc(D.title||tid)+'</div>'+
+          '<div class="sum-sub">🤖 Botda yechilgan • '+timeStr(D.saved_at)+'</div>'+
+          '<div class="pass-tag '+(passed?'tag-pass':'tag-fail')+'">'+(passed?"✅ O'tdi":"❌ O'tmadi")+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="prog"><div class="prog-b" id="prog-bar" style="width:0%"></div></div>'+
+      '<div class="sum-stats">'+
+        '<div class="ss"><div class="ssv" style="color:var(--good)">'+correct+'</div><div class="ssl">To\'g\'ri</div></div>'+
+        '<div class="ss"><div class="ssv" style="color:var(--bad)">'+(total-correct)+'</div><div class="ssl">Xato</div></div>'+
+        '<div class="ss"><div class="ssv">'+total+'</div><div class="ssl">Jami</div></div>'+
+        '<div class="ss"><div class="ssv" style="font-size:.72rem">'+(D.time_spent?elapsed2s(D.time_spent):'—')+'</div><div class="ssl">Vaqt</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="sec-t">📊 Savol tahlili <span class="deleted-tag" style="background:rgba(37,99,235,.1);color:#2563eb">oxirgi urinish</span></div>'+
+    '<div id="q-wrap"></div>';
+  requestAnimationFrame(function(){ const b=document.getElementById('prog-bar'); if(b) b.style.width=pct+'%'; });
+
+  const qWrap=document.getElementById('q-wrap');
+  det.forEach(function(x,i){
+    const opts=Array.isArray(x.options)?x.options:[];
+    const ua=x.user_answer;
+    const isSkip=(ua===null||ua===undefined||ua==='');
+    const isOk=!!x.is_correct;
+    const cls=isSkip?'q-skip':isOk?'q-ok':'q-err';
+    const badge=isSkip?'⏭':isOk?'✓':'✗';
+    const card=document.createElement('div');
+    card.className='qc '+cls;
+    card.style.animationDelay=(Math.min(i,10)*0.04)+'s';
+    let body='<div class="q-hdr"><div class="q-badge">'+badge+'</div><div class="q-text">'+(i+1)+'. '+esc(x.question||('Savol '+(i+1)))+'</div></div>';
+    if(opts.length){
+      const ci=idxOf(x.correct_answer,opts), ui=idxOf(ua,opts);
+      opts.forEach(function(o,j){
+        let c2='opt', mark='';
+        if(j===ci){c2='opt opt-ok';mark='✅'}
+        else if(!isSkip && j===ui){c2='opt opt-err';mark='❌'}
+        body+='<div class="'+c2+'"><span class="opt-lt">'+String.fromCharCode(65+j)+'</span>'+esc(strip(o))+'<span style="margin-left:auto;font-size:.76rem;flex-shrink:0">'+mark+'</span></div>';
+      });
+    }else{
+      // Variantlar saqlanmagan eski tahlil — javoblar matn ko'rinishida
+      body+='<div class="opt '+(isOk?'opt-ok':(isSkip?'':'opt-err'))+'"><span class="opt-lt">Siz</span>'+esc(ansText(ua,opts))+'<span style="margin-left:auto">'+(isSkip?'':(isOk?'✅':'❌'))+'</span></div>';
+      if(!isOk) body+='<div class="opt opt-ok"><span class="opt-lt">✓</span>'+esc(ansText(x.correct_answer,opts))+'<span style="margin-left:auto">✅</span></div>';
+    }
+    if(isSkip) body+='<div class="skip-notice">⏭ Bu savol o\'tkazib yuborildi</div>';
+    if(x.explanation) body+='<div class="expl">💡 '+esc(x.explanation)+'</div>';
+    card.innerHTML=body;
+    qWrap.appendChild(card);
+  });
+  if(!det.length) qWrap.innerHTML='<div class="warn-box">Bu tahlilda savollar yo\'q.</div>';
+})();
+</script>
+</body>
+</html>

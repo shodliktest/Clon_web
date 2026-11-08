@@ -516,9 +516,13 @@ body{padding-top:0}
 
 <div class="tp-toast" id="toast"></div>
 
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="js/api.js"></script>
 <script src="js/common.js"></script>
 <script>
+// Mini App sifatida ochilganda butun ekranga yoyiladi (alohida brauzer oynasi emas)
+try { if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); } } catch (e) {}
+
 // ─── THEME — js/common.js dagi umumiy TH obyekti ishlatiladi.
 // Faqat shu sahifaga xos themeBtn ni unga bog'laymiz.
 document.getElementById('themeBtn').textContent = TH.get()==='dark' ? '☀️' : '🌙';
@@ -560,11 +564,30 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadTest();
 });
 
+// Foydalanuvchi ID si: URL (?uid=) → saqlangan sessiya → Telegram Mini App. Ilgari sarlavha
+// UMUMAN yuborilmasdi, shuning uchun server egasini taniy olmay, pauzadagi/yopiq testlarni
+// "ko'rinmay qolgan" qilib qo'yardi.
+function _authHeaders(){
+  const h = {'Content-Type':'application/json'};
+  const tg = window.Telegram && Telegram.WebApp;
+  let uid = P.get('uid') || '';
+  if(!uid){ try{ uid = TGAuth.uid(); }catch(e){} }
+  if(!uid && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) uid = String(tg.initDataUnsafe.user.id);
+  if(uid) h['X-TG-ID'] = String(uid);
+  if(tg && tg.initData) h['X-TG-INIT'] = tg.initData;
+  return h;
+}
 async function apiCall(endpoint, opts={}){
   const url = API_PROXY + '?endpoint=' + endpoint;
-  const res = await fetch(url, { headers:{'Content-Type':'application/json'}, ...opts });
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  return res.json();
+  const res = await fetch(url, { ...opts, headers:{ ..._authHeaders(), ...(opts.headers||{}) } });
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(res.status===403 && data && data.code==='FORCE_JOIN'){
+    if(window.FJ) window.FJ.show(data.channels||[]);
+    throw new Error(data.error);
+  }
+  if(!res.ok) throw new Error((data && data.error) || ('HTTP '+res.status));
+  return data;
 }
 
 async function loadTest(){
@@ -576,7 +599,7 @@ async function loadTest(){
     testMeta = meta;
     document.getElementById('hTitle').textContent = meta.title || 'Test tahrirlash';
     updateMetaBar();
-    const full = await apiCall('test/'+TID+'/full');
+    const full = await apiCall('test/'+TID+'/full&edit=1');
     if(full && full.questions && full.questions.length){
       initData(full.questions);
     } else {

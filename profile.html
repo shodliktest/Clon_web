@@ -275,9 +275,11 @@ async function openSolvers(tid, title){
         '<div class="s-ava">'+((s.name||'?')[0].toUpperCase())+'</div>'+
         '<div class="s-info">'+
           '<div class="s-name">'+esc(s.name||"Noma'lum")+'</div>'+
-          '<div class="s-sub">'+(s.username?('@'+s.username+' · '):'')+s.attempts+" marta · O'rtacha: "+Math.round(s.avg_score||0)+'%</div>'+
+          '<div class="s-sub">'+(s.username?('@'+s.username+' · '):'')+s.attempts+" marta"+(s.attempts?(" · O'rtacha: "+Math.round(s.avg_score||0)+'%'):'')+
+            (s.status==='solving'?(' · <b style="color:#2563eb">⏳ hozir yechmoqda ('+s.progress+'/'+s.total_q+')</b>'):'')+
+            (s.status==='abandoned'?(' · <b style="color:#d97706">⏸ yarim qoldi ('+s.progress+'/'+s.total_q+')</b>'):'')+'</div>'+
         '</div>'+
-        '<div class="s-score">'+Math.round(s.best_score||0)+'%</div>'+
+        '<div class="s-score">'+(s.attempts?Math.round(s.best_score||0)+'%':'—')+'</div>'+
       '</div>';
     }).join('');
   }catch(e){

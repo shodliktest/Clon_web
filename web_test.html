@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover"/>
 <title>TestPro — Web Test</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="js/fj.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet"/>
@@ -1117,7 +1118,8 @@ function _liveCall(action, extra){
     }).catch(()=>{});
   }catch{}
 }
-window.addEventListener('beforeunload', ()=>_liveCall('end'));
+/* Sahifa yopilganda sessiya O'CHIRILMAYDI: tugatilmagan urinish serverda qoladi va 10 daqiqadan keyin
+   «Yarim qoldi» deb ko'rinadi. Sessiya faqat test YAKUNLANGANDA (finish) o'chiriladi. */
 
 
 /* ──────────────────────────────────────────────
@@ -1188,6 +1190,160 @@ async function _ph(fid,el){
 }
 function _si(el,src){el.innerHTML=`<img src="${src}" style="width:100%;max-height:200px;object-fit:contain;border-radius:14px;margin-bottom:10px;border:1px solid rgba(74,144,217,.2);display:block" onerror="this.parentElement.innerHTML=''">`}
 
+
+/* ════════════════════════════════════════════════════════════
+   SESSIYA — yakunlanmagan testni KEYIN o'sha savoldan davom ettirish
+   Aralashtirilgan tartib (savollar + variantlar), javoblar, joriy savol va vaqt saqlanadi.
+   Saqlash joyi: localStorage + Telegram CloudStorage (WebView localStorage'ni tozalab yuborsa ham qoladi).
+   «Yakunlash» bosilganda yoki test tugaganda o'chadi.
+   ════════════════════════════════════════════════════════════ */
+let _el=0,_rem=null,_retryMode=false,_wsCloudTs=0;
+const _WS_KEY='tp_ws_'+(UID||'0')+'_'+TID;
+const _CK='ws_'+(TID||'x').replace(/[^A-Za-z0-9_-]/g,'');
+function _wsHash(orig){
+  let h=0;const s=orig.map(q=>q.txt+'|'+q.opts.join('~')).join('#');
+  for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0}
+  return h+':'+orig.length;
+}
+function _wsValid(st,orig){
+  return !!(st&&st.v===2&&st.h===_wsHash(orig)&&Array.isArray(st.o)&&st.o.length===orig.length&&
+    Array.isArray(st.p)&&Array.isArray(st.a)&&(Date.now()-st.ts)<2*86400000);
+}
+function _cloud(){
+  try{const c=TG&&TG.CloudStorage;return(c&&TG.isVersionAtLeast&&TG.isVersionAtLeast('6.9'))?c:null}catch{return null}
+}
+function _wsCloudGet(){
+  return new Promise(res=>{
+    const c=_cloud();if(!c)return res(null);
+    let done=false;const t=setTimeout(()=>{if(!done){done=true;res(null)}},1500);
+    try{c.getItem(_CK,(err,v)=>{if(done)return;done=true;clearTimeout(t);if(err||!v)return res(null);try{res(JSON.parse(v))}catch{res(null)}})}
+    catch{clearTimeout(t);res(null)}
+  });
+}
+function _wsCloudSet(raw){
+  const c=_cloud();if(!c||raw.length>3900||Date.now()-_wsCloudTs<5000)return;
+  _wsCloudTs=Date.now();try{c.setItem(_CK,raw,()=>{})}catch{}
+}
+function _wsCloudDel(){const c=_cloud();if(!c)return;try{c.removeItem(_CK,()=>{})}catch{}}
+async function _wsLoad(orig){
+  try{
+    if(sessionStorage.getItem(_WS_KEY+'_fresh')){sessionStorage.removeItem(_WS_KEY+'_fresh');return null}
+  }catch{}
+  let best=null;
+  try{const r=localStorage.getItem(_WS_KEY);if(r){const st=JSON.parse(r);if(_wsValid(st,orig))best=st}}catch{}
+  const cl=await _wsCloudGet();
+  if(cl&&_wsValid(cl,orig)&&(!best||cl.ts>best.ts))best=cl;
+  return best;
+}
+function _wsSave(force){
+  if(DEMO||finished||_retryMode||!qs.length||!window._origQs)return;
+  const st={v:2,h:_wsHash(window._origQs),o:qs.map(q=>q._oi),p:qs.map(q=>q._op),a:answers,c:cur,el:_el,rem:_rem,ts:Date.now()};
+  const raw=JSON.stringify(st);
+  try{localStorage.setItem(_WS_KEY,raw)}catch{}
+  _wsCloudSet(raw);
+}
+function _wsClear(){try{localStorage.removeItem(_WS_KEY)}catch{}_wsCloudDel()}
+function _wsTick(){
+  if(_el%10===0)_wsSave();
+  if(_el%45===0&&!finished&&!_retryMode)_liveCall('update',{idx:cur});   // yurak urishi: last_seen yangilanadi
+}
+function _wsBanner(){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;left:12px;right:12px;top:12px;z-index:9999;background:#1e40af;color:#fff;padding:10px 14px;border-radius:12px;font:600 13px system-ui,sans-serif;display:flex;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 6px 20px rgba(0,0,0,.25)';
+  d.innerHTML='<span>▶️ Davom ettirilmoqda: '+(cur+1)+'-savoldan</span><button style="border:0;border-radius:8px;padding:6px 10px;font-weight:700;background:#fff;color:#1e40af;cursor:pointer">Boshidan</button>';
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),7000);
+  d.querySelector('button').onclick=()=>{
+    try{sessionStorage.setItem(_WS_KEY+'_fresh','1')}catch{}
+    _wsClear();location.reload();
+  };
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)_wsSave()});
+window.addEventListener('pagehide',()=>_wsSave());
+
+/* ════════════════════════════════════════════════════════════
+   XATOLAR USTIDA ISHLASH (oxirgi yechilgan test) + LOKAL STATISTIKA
+   Hammasi foydalanuvchining O'Z qurilmasida (localStorage) — Supabase'ga yuklama tushmaydi.
+   Yangi testda xato bo'lmasa, oldingi test xatolari ham o'chadi (botdagi qoida bilan bir xil).
+   ════════════════════════════════════════════════════════════ */
+function _wrongKey(){return 'tp_wrong_'+(UID||'0')}
+function _wrongBtn(n){
+  let b=document.getElementById('wrongBtn');
+  const rb=document.getElementById('reviewBtn');
+  if(!rb)return;
+  if(!n){if(b)b.style.display='none';return}
+  if(!b){
+    b=document.createElement('button');b.id='wrongBtn';b.className='restart-btn';
+    b.style.cssText='background:rgba(220,38,38,.1);border:1.5px solid rgba(220,38,38,.3);color:#DC2626;display:flex;align-items:center;gap:6px';
+    b.onclick=()=>startWrongRetry();
+    rb.parentElement.insertBefore(b,rb);
+  }
+  b.style.display='flex';
+  b.textContent='❌ Xatolarni qayta yechish ('+n+')';
+}
+function _wrongSave(){
+  if(DEMO||_retryMode||!UID)return;
+  const wrong=[];
+  qs.forEach((q,i)=>{
+    if(answers[i]!==null&&answers[i]!==q.correct)
+      wrong.push({txt:q.txt,opts:q.opts,correct:q.correct,expl:q.expl||'',photo:q.photo||null,
+                  img:(q.img&&!String(q.img).startsWith('data:'))?q.img:null});
+  });
+  try{
+    if(wrong.length)localStorage.setItem(_wrongKey(),JSON.stringify({tid:TID,title:meta?.title||TID,ts:Date.now(),total:qs.length,qs:wrong}));
+    else localStorage.removeItem(_wrongKey());
+  }catch{}
+  _wrongBtn(wrong.length);
+}
+function _wrongAfterRetry(){
+  const remaining=[];
+  qs.forEach((q,i)=>{
+    if(answers[i]===null||answers[i]!==q.correct)
+      remaining.push({txt:q.txt,opts:q.opts,correct:q.correct,expl:q.expl||'',photo:q.photo||null,img:q.img||null});
+  });
+  let st=null;try{st=JSON.parse(localStorage.getItem(_wrongKey()))}catch{}
+  try{
+    if(remaining.length)localStorage.setItem(_wrongKey(),JSON.stringify({...(st||{tid:TID,title:meta?.title||TID,total:remaining.length}),ts:Date.now(),qs:remaining}));
+    else localStorage.removeItem(_wrongKey());
+  }catch{}
+  _wrongBtn(remaining.length);
+  return remaining.length;
+}
+function startWrongRetry(){
+  let st=null;try{st=JSON.parse(localStorage.getItem(_wrongKey()))}catch{}
+  if(!st||st.tid!==TID||!st.qs||!st.qs.length){alert("Bu test uchun saqlangan xatolar yo'q.\nFaqat oxirgi yechilgan (xatosi bor) test xatolari saqlanadi.");return}
+  clearInterval(tmr);
+  _retryMode=true;finished=false;cur=0;att=0;cor=0;_el=0;_rem=null;
+  qs=st.qs.map(q=>{
+    const idx=q.opts.map((_,k)=>k);
+    for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]]}
+    return{txt:q.txt,opts:idx.map(k=>q.opts[k]),correct:idx.indexOf(q.correct),expl:q.expl||'',photo:q.photo||null,img:q.img||null};
+  });
+  answers=new Array(qs.length).fill(null);
+  t0=Date.now();
+  const st2=$('subjectTitle');if(st2)st2.textContent='❌ Xatolar: '+(st.title||TID);
+  tmr=setInterval(()=>{_el++;const tEl=$('timerText');if(tEl)tEl.textContent=fmt(_el)},1000);
+  $('resultScreen').style.display='none';
+  $('quizArea').style.display='flex';$('quizArea').style.flexDirection='column';$('quizArea').style.alignItems='center';
+  const bs=document.getElementById('bottom-stats');if(bs)bs.style.display='block';
+  renderQ();
+}
+function _localStats(pct,elapsed){
+  if(!UID||DEMO||_retryMode)return;
+  try{
+    const k='tp_ustats_'+UID;const s=JSON.parse(localStorage.getItem(k)||'{}');
+    const t=s[TID]||{attempts:0,sum:0,best:0};
+    t.attempts++;t.sum+=pct;t.best=Math.max(t.best,pct);t.last=pct;t.avg=Math.round(t.sum/t.attempts*10)/10;
+    t.title=meta?.title||TID;t.at=Date.now();t.elapsed=elapsed;
+    s[TID]=t;localStorage.setItem(k,JSON.stringify(s));
+  }catch{}
+}
+function _authH(extra){
+  const h={'X-TG-ID':String(UID||'')};
+  try{if(TG&&TG.initData)h['X-TG-INIT']=TG.initData}catch{}
+  return{...h,...(extra||{})};
+}
+
 async function boot(){
   if(!TID){showErr("URL da test ID yo'q");return}
   try{
@@ -1199,7 +1355,7 @@ async function boot(){
       r=await fetch(API+'?endpoint=test/'+TID+'/full',{
         signal:ctrl.signal,
         cache:'no-store',
-        headers:{'X-TG-ID':String(UID||'')}
+        headers:_authH()
       });
     }catch(fe){
       clearTimeout(tmo);
@@ -1211,6 +1367,11 @@ async function boot(){
     clearTimeout(tmo);
     const serverResp=await r.json();
     if(!r.ok || !serverResp || serverResp.error){
+      if(serverResp && serverResp.code==='FORCE_JOIN'){
+        const _ld=$('scr-load');if(_ld)_ld.style.display='none';
+        if(window.FJ){window.FJ.setUid(UID);window.FJ.show(serverResp.channels||[])}
+        return;
+      }
       if(serverResp && (serverResp.code==='ACCESS_DENIED' || serverResp.code==='TEST_STOPPED' || serverResp.code==='TEST_PAUSED')){
         showAccessMessage(serverResp);
       }else{
@@ -1227,17 +1388,40 @@ async function boot(){
     let questions=norm(resp.questions||resp.testData?.questions||meta.questions||[]);
     if(!questions.length){showErr("Bu testda savollar yo'q");return}
 
-    // Savollar HAR DOIM aralashtiriladi (meta flag e'tiborga olinmaydi)
-    for(let i=questions.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[questions[i],questions[j]]=[questions[j],questions[i]]}
-    questions=questions.map(q=>{
-      const o=[...q.opts];const ct=o[q.correct];
-      for(let i=o.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[o[i],o[j]]=[o[j],o[i]]}
-      return{...q,opts:o,correct:o.indexOf(ct)};
-    });
-    if(DEMO&&questions.length>DMAX)questions=questions.slice(0,DMAX);
+    // Asl tartibni eslab qolamiz — yakunlanmagan testni DAVOM ettirish uchun
+    const _origQs=questions.map((q,i)=>({...q,_oi:i}));
+    window._origQs=_origQs;
+    const saved=DEMO?null:await _wsLoad(_origQs);
+    let resumed=false;
+    if(saved){
+      // Davom ettirish: saqlangan aralashtirilgan tartib va javoblar tiklanadi
+      questions=saved.o.map((oi,k)=>{
+        const q=_origQs[oi],idx=saved.p[k];
+        return{...q,opts:idx.map(x=>q.opts[x]),correct:idx.indexOf(q.correct),_op:idx};
+      });
+      resumed=true;
+    }else{
+      // Savollar HAR DOIM aralashtiriladi (meta flag e'tiborga olinmaydi)
+      questions=_origQs.map(q=>({...q}));
+      for(let i=questions.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[questions[i],questions[j]]=[questions[j],questions[i]]}
+      questions=questions.map(q=>{
+        const idx=q.opts.map((_,k)=>k);
+        for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]]}
+        return{...q,opts:idx.map(k=>q.opts[k]),correct:idx.indexOf(q.correct),_op:idx};
+      });
+      if(DEMO&&questions.length>DMAX)questions=questions.slice(0,DMAX);
+    }
     qs=questions;
-    answers=new Array(qs.length).fill(null);
-    t0=Date.now();
+    if(resumed){
+      answers=saved.a.slice(0,qs.length);while(answers.length<qs.length)answers.push(null);
+      cur=Math.min(Math.max(saved.c||0,0),qs.length-1);
+      att=answers.filter(x=>x!==null).length;
+      cor=answers.filter((x,i)=>x!==null&&x===qs[i].correct).length;
+      _el=saved.el||0;t0=Date.now()-_el*1000;
+    }else{
+      answers=new Array(qs.length).fill(null);
+      t0=Date.now();_el=0;
+    }
 
     /* Subject */
     $('subjectTitle').textContent=meta.title||TID;
@@ -1247,23 +1431,22 @@ async function boot(){
     const _tb=document.getElementById('timer-box');
     if(_tb)_tb.style.display='flex';
     if(timeSec>0){
-      // Countdown
-      let rem=timeSec;
+      // Countdown (davom ettirilganda qolgan vaqtdan)
+      _rem=resumed&&saved.rem!=null?Math.max(1,saved.rem):timeSec;
       const upd=()=>{
         const tEl=$('timerText');
         if(tEl){
-          tEl.textContent=fmt(rem);
-          tEl.style.color=rem<60?'#dc2626':'';
+          tEl.textContent=fmt(_rem);
+          tEl.style.color=_rem<60?'#dc2626':'';
         }
       };
       upd();
-      tmr=setInterval(()=>{rem--;upd();if(rem<=0){clearInterval(tmr);finish()}},1000);
+      tmr=setInterval(()=>{_rem--;_el++;upd();_wsTick();if(_rem<=0){clearInterval(tmr);finish()}},1000);
     } else {
       // Countup — o'tgan vaqt
-      let elapsed=0;
-      const upd=()=>{const tEl=$('timerText');if(tEl)tEl.textContent=fmt(elapsed)};
+      const upd=()=>{const tEl=$('timerText');if(tEl)tEl.textContent=fmt(_el)};
       upd();
-      tmr=setInterval(()=>{elapsed++;upd()},1000);
+      tmr=setInterval(()=>{_el++;upd();_wsTick()},1000);
     }
 
     /* Show quiz */
@@ -1274,6 +1457,10 @@ async function boot(){
 
     renderQ();
     _liveCall('start', { title: meta.title || TID, total_q: qs.length, name: UNAME, uname: UUN });
+    if(resumed)_wsBanner();
+    else _wsSave();
+    // ?wrong=1 — to'g'ridan-to'g'ri xatolar ustida ishlash rejimida ochish
+    if(P.get('wrong')==='1'&&!DEMO){try{if(localStorage.getItem(_wrongKey()))startWrongRetry()}catch{}}
   }catch(e){console.error(e);showErr('Yuklanmadi: '+e.message)}
 }
 
@@ -1383,6 +1570,7 @@ function pick(i){
   const _ok=(i===qs[cur].correct);
   if(_ok)cor++;
   renderQ();
+  _wsSave();
   if(_ok){
     // Telegram quiz-poll uslubida: konfetti + toʻgʻri variant halqasi
     fxConfettiBurst();
@@ -1399,8 +1587,8 @@ function pick(i){
   }
 }
 
-function prevQ(){if(cur>0){cur--;renderQ()}}
-function nextQ(){if(cur<qs.length-1){cur++;renderQ()}else finish()}
+function prevQ(){if(cur>0){cur--;renderQ();_wsSave()}}
+function nextQ(){if(cur<qs.length-1){cur++;renderQ();_wsSave()}else finish()}
 
 function askFinish(){
   const left=answers.filter(a=>a===null).length;
@@ -1412,6 +1600,7 @@ function askFinish(){
 async function finish(){
   if(finished)return;finished=true;
   clearInterval(tmr);
+  _wsClear();                    // yakunlandi — davom ettirish sessiyasi kerak emas
   _liveCall('end');
   const elapsed=Math.floor((Date.now()-t0)/1000);
   const tot=qs.length;
@@ -1442,8 +1631,18 @@ async function finish(){
     ?`🌟 Tabriklaymiz! ${pct}% — O'tdingiz!`
     :`💪 ${pct}% — Yana urinib ko'ring!`;
 
+  /* Xatolar (oxirgi test) + lokal statistika — foydalanuvchining o'z qurilmasida */
+  let _retryLeft=null;
+  if(_retryMode){_retryLeft=_wrongAfterRetry()}
+  else{_wrongSave();_localStats(pct,elapsed)}
+
   /* Save */
-  if(UID&&!DEMO){
+  if(_retryMode){
+    const sr=document.getElementById('saveStatus')||document.createElement('div');
+    sr.id='saveStatus';
+    sr.style.cssText='display:block;padding:10px 16px;border-radius:12px;font-size:.8rem;font-weight:600;background:rgba(5,150,105,.07);border:1px solid rgba(5,150,105,.3);color:#059669;margin:10px 0';
+    sr.textContent=_retryLeft?('✅ Xatolar ro\'yxati yangilandi: '+_retryLeft+' ta qoldi'):'🎉 Hammasi to\'g\'ri! Xatolar ro\'yxati tozalandi.';
+  }else if(UID&&!DEMO){
     const si=document.getElementById('saveStatus')||document.createElement('div');
     si.id='saveStatus';si.style.display='block';
     si.style.cssText='padding:10px 16px;border-radius:12px;font-size:.8rem;font-weight:600;background:rgba(74,144,217,.08);border:1px solid rgba(74,144,217,.2);color:rgba(44,74,122,.7);margin:10px 0';
@@ -1451,9 +1650,10 @@ async function finish(){
     try{
       const uA=qs.map((_,i)=>answers[i]!==null?answers[i]:-1);
       const res=await fetch(API+'?endpoint=result/save',{
-        method:'POST',headers:{'Content-Type':'application/json','X-TG-ID':String(UID||'')},
+        method:'POST',headers:_authH({'Content-Type':'application/json'}),
         body:JSON.stringify({testId:TID,testTitle:meta?.title||TID,subject:meta?.category||meta?.subject||'',userId:UID,user_id:UID,userName:UNAME,user_name:UNAME,userUsername:UUN,user_username:UUN,score:pct,correct,total:tot,percentage:pct,passing_score:passScore,passed,elapsed,detailed_results:uA,userAnswers:uA,completedAt:new Date().toISOString(),source:DEMO?'web_demo':'web_test'})
       }).then(r=>r.json());
+      if(res&&res.code==='FORCE_JOIN'&&window.FJ){window.FJ.setUid(UID);window.FJ.show(res.channels||[])}
       if(res?.ok){
         si.style.color='#059669';si.style.background='rgba(5,150,105,.07)';si.style.borderColor='rgba(5,150,105,.3)';
         si.textContent='✅ Natija saqlandi va statistikaga qo\'shildi!';
@@ -1469,12 +1669,14 @@ async function finish(){
 }
 
 function retryTest(){
-  finished=false;cur=0;att=0;cor=0;
+  if(!_retryMode)_wsClear();
+  finished=false;cur=0;att=0;cor=0;_el=0;
   answers=new Array(qs.length).fill(null);
   qs=qs.map(q=>{const o=[...q.opts];const ct=o[q.correct];for(let i=o.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[o[i],o[j]]=[o[j],o[i]]}return{...q,opts:o,correct:o.indexOf(ct)}});
   clearInterval(tmr);t0=Date.now();
-  const timeSec=(meta?.time_limit||0)*60;
-  if(timeSec>0){let rem=timeSec;const upd=()=>{if($('timerText'))$('timerText').textContent=fmt(rem)};upd();tmr=setInterval(()=>{rem--;upd();if(rem<=0){clearInterval(tmr);finish()}},1000)}
+  const timeSec=_retryMode?0:(meta?.time_limit||0)*60;
+  if(timeSec>0){_rem=timeSec;const upd=()=>{if($('timerText'))$('timerText').textContent=fmt(_rem)};upd();tmr=setInterval(()=>{_rem--;_el++;upd();_wsTick();if(_rem<=0){clearInterval(tmr);finish()}},1000)}
+  else{tmr=setInterval(()=>{_el++;if($('timerText'))$('timerText').textContent=fmt(_el)},1000)}
   $('resultScreen').style.display='none';
   $('quizArea').style.display='flex';
   const _bsr=document.getElementById('bottom-stats');if(_bsr)_bsr.style.display='block';

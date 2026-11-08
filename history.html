@@ -158,10 +158,11 @@ function render(list){
       const pct=Math.round(r.percentage||r.score||0);
       const cls = pct>=80?'sg':pct>=50?'sa':'sr';
       const c=document.createElement('div'); c.className='rc';
-      c.onclick=function(){goTo('review.html?id='+r.id);};
+      const _go=function(){goTo(r.source==='bot'?('analysis.html?tid='+encodeURIComponent(r.testId||r.test_id)):('review.html?id='+encodeURIComponent(r.id)));};
+      c.onclick=_go;
       c.innerHTML=
         '<div class="rc-l">'+
-          '<div class="rc-nm">'+esc(r.testTitle||r.testId||'Test')+'</div>'+
+          '<div class="rc-nm">'+esc(r.testTitle||r.testId||'Test')+(r.source==='bot'?' <span style="font-size:.62rem;font-weight:800;color:#2563eb;background:rgba(37,99,235,.1);padding:2px 6px;border-radius:6px">🤖 Bot</span>':'')+'</div>'+
           '<div class="rc-meta">'+
             '<span>'+ico+' '+esc(sub.label)+'</span>'+
             '<span>🕐 '+timeStr(r.completedAt)+'</span>'+
@@ -174,7 +175,7 @@ function render(list){
           '<div class="rc-frac">'+(r.correct||0)+' / '+(r.total||0)+'</div>'+
           '<button class="tbtn">🔍 Tahlil</button>'+
         '</div>';
-      c.querySelector('.tbtn').onclick=function(e){e.stopPropagation();goTo('review.html?id='+r.id);};
+      c.querySelector('.tbtn').onclick=function(e){e.stopPropagation();_go();};
       items.appendChild(c);
     });
     hdr.onclick=function(){
