@@ -4,6 +4,18 @@
    ================================================================ */
 
 const BOT_USERNAME = window.TESTPRO_BOT || 'Quiztimeuzbot';
+
+/* Majburiy obuna oynasi (js/fj.js) — api.js ulangan har bir sahifada avtomatik yuklanadi */
+const _fjReady = new Promise(res => {
+  try {
+    if (window.FJ) return res();
+    const src = ((document.currentScript && document.currentScript.src) || '').replace(/api\.js(\?.*)?$/, 'fj.js');
+    if (!src) return res();
+    const sc = document.createElement('script');
+    sc.src = src; sc.onload = () => res(); sc.onerror = () => res();
+    document.head.appendChild(sc);
+  } catch (e) { res(); }
+});
 const API_URL      = '/api/proxy';
 
 /* ── Navigation ── */
@@ -130,6 +142,13 @@ const TGAuth = {
 const AuthHelpers = {
   getCurrentUser() { return Promise.resolve(TGAuth.get()); },
   async requireAuth(fallback = 'login.html') {
+    const u = await AuthHelpers._requireAuthInner(fallback);
+    if (u) {
+      try { await _fjReady; if (window.FJ) await window.FJ.gate(String(u.id || u.uid || '')); } catch (e) {}
+    }
+    return u;
+  },
+  async _requireAuthInner(fallback = 'login.html') {
     // 1. URL da ?uid=...&auto=1 bor — botdan kelgan link, darhol saqlash
     const fromUrl = TGAuth.tryFromUrl();
     if (fromUrl) return fromUrl;
@@ -191,6 +210,10 @@ async function _req(method, path, body) {
   const u = TGAuth.get();
   const headers = { 'Content-Type': 'application/json' };
   if (u) headers['X-TG-ID'] = String(u.id || u.uid || '');
+  try {   // Telegram Mini App ichida bo'lsak — HMAC bilan tekshiriladigan initData ham yuboriladi
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && tg.initData) headers['X-TG-INIT'] = tg.initData;
+  } catch (e) {}
 
   let url = API_URL;
   const match = path.match(/^\/api\/(.+)/);
@@ -207,7 +230,10 @@ async function _req(method, path, body) {
   if (body) opts.body = JSON.stringify(body);
   const res  = await fetch(url, opts);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    if (data && data.code === 'FORCE_JOIN' && window.FJ) window.FJ.show(data.channels || []);
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
   return data;
 }
 const GET  = p     => _req('GET',  p);
@@ -349,6 +375,21 @@ const DB = {
       } catch (e) { /* tarmoq/server xatosi — faqat localStorage bilan davom etamiz */ }
     }
 
+    // Server qatorlarini mahalliy natija formatiga keltiramiz (tarix/tahlil sahifalari shu formatni o'qiydi)
+    remote = remote.map(x => {
+      const ms = x.completed_at ? new Date(x.completed_at).getTime() : (x.completedAt || 0);
+      return Object.assign({}, x, {
+        id:          x.result_id || x.id,
+        testId:      x.testId || x.test_id,
+        test_id:     x.test_id || x.testId,
+        testTitle:   x.testTitle || x.test_title || x.test_id || '',
+        completedAt: ms,
+        percentage:  x.percentage != null ? x.percentage : (x.score || 0),
+        userAnswers: x.userAnswers || x.detailed_results || [],
+        source:      x.source || 'web',
+      });
+    });
+
     const all = JSON.parse(localStorage.getItem('tp_results') || '[]');
     let local;
     if (userId) {
@@ -361,12 +402,16 @@ const DB = {
     }
 
     // Birlashtirish: bir xil natija ikki marta chiqmasin (test_id + vaqt bo'yicha)
+    // (mahalliy nusxa birinchi — unda to'liq javoblar bor; server nusxasi bir daqiqa ichida bir xil test bo'lsa o'tkazib yuboriladi)
     const seen = new Set();
     const merged = [];
-    [...remote, ...local].forEach(r => {
-      const key = String(r.result_id || r.id || '') || (String(r.test_id || r.testId || '') + '_' + String(r.completed_at || r.completedAt || ''));
-      if (seen.has(key)) return;
-      seen.add(key);
+    [...local, ...remote].forEach(r => {
+      const tid = String(r.test_id || r.testId || '');
+      const ms  = Number(r.completedAt || new Date(r.completed_at || 0).getTime() || 0);
+      const key = String(r.id || r.result_id || '') || (tid + '_' + ms);
+      const key2 = r.source === 'bot' ? key : (tid + '|' + Math.round(ms / 60000));
+      if (seen.has(key) || seen.has(key2)) return;
+      seen.add(key); seen.add(key2);
       merged.push(r);
     });
     merged.sort((a, b) => {
