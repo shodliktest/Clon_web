@@ -857,16 +857,12 @@ export default async function handler(request) {
               timeLimit, passScore, shuffleQuestions, showResult, questionCount,
               authorName, questions, difficulty, poll_time, max_attempts } = body || {};
       if (!title) return jsonResp({ error: 'Title kerak' }, 400);
-      // Egasi — so'rovdan tekshirilgan foydalanuvchi (klient yuborgan authorId ga ishonilmaydi).
-      // Aks holda creator_id 0 bo'lib qoladi va test hech kim tomonidan tahrirlanmaydi/o'chirilmaydi.
-      const _who = await whoIs(request);
-      if (!_who.uid) return jsonResp({ error: "Test yaratish uchun Telegram orqali kiring", code: 'LOGIN_REQUIRED' }, 401);
       const tid = Array.from(crypto.getRandomValues(new Uint8Array(4)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 
       const qs = (questions || []).map(q => webToBot(q));
       const meta = {
-        creator_id:       parseInt(_who.uid) || 0,
+        creator_id:       parseInt(authorId) || 0,
         creator_name:     authorName || '',
         category:         category || subject || 'Boshqa',
         subject:          subject || category || 'Boshqa',
