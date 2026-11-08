@@ -872,6 +872,53 @@
     100%{ transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(.6); opacity:0; }
   }
 
+
+/* ── Pastki panel doimiy (savollar siljisa ham ko'rinib turadi) ── */
+#quizArea { padding-bottom: calc(var(--dock-h, 200px) + 24px) !important; }
+#tpDock{
+  position:fixed; left:0; right:0; bottom:0; z-index:200;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));
+  background:rgba(246,243,255,.97); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-top:1px solid rgba(124,58,237,.12);
+}
+[data-theme=dark] #tpDock{ background:rgba(18,14,32,.97); border-top-color:rgba(255,255,255,.08); }
+#tpDock .bottom-nav{ margin:0 !important; width:100% !important; max-width:480px !important; }
+#tpDock #bottom-stats{ margin:0 !important; width:100% !important; max-width:480px !important; animation:none !important; }
+.tp-izoh{
+  width:100%; max-width:480px; padding:9px 14px; border-radius:12px; cursor:pointer;
+  border:1.5px solid rgba(124,58,237,.3); background:#fff; color:#6D28D9;
+  font:700 13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+.tp-izoh.on{ background:#7C3AED; color:#fff; border-color:#7C3AED; }
+[data-theme=dark] .tp-izoh{ background:#1f1a33; color:#c4b5fd; border-color:rgba(196,181,253,.3); }
+[data-theme=dark] .tp-izoh.on{ background:#7C3AED; color:#fff; }
+/* Sarlavha kartochkasi va "SAVOL 01" belgisi ko'rsatilmaydi */
+.subject-card, #subjectTitle, #qNumber { display:none !important; }
+/* ── Savollar tartibi: chapga tekislangan, kengroq ustun, keng ekranda 2 ustunli variantlar ── */
+#quizArea > .question-card,
+#quizArea > .options-wrap,
+#quizArea > #_explw,
+#quizArea > .answer-explain{
+  width:calc(100% - 32px) !important; max-width:720px !important; margin-left:auto !important; margin-right:auto !important; box-sizing:border-box;
+}
+.question-card{ align-items:stretch !important; text-align:left !important; padding:22px 20px !important; }
+.question-card .question-text{
+  text-align:left !important; font-size:clamp(16px,4.2vw,19px) !important; line-height:1.7 !important;
+  width:100%; overflow-wrap:anywhere; word-break:break-word; hyphens:auto;
+}
+.options-wrap{ gap:10px !important; }
+.options-wrap .opt{
+  text-align:left !important; justify-content:flex-start !important; align-items:flex-start;
+  white-space:normal !important; line-height:1.55; overflow-wrap:anywhere; word-break:break-word;
+}
+.options-wrap .opt .opt-label, .options-wrap .opt > span:last-child{ flex:1; min-width:0; }
+.answer-explain, #_explw .answer-explain{ text-align:left !important; line-height:1.65; overflow-wrap:anywhere; }
+@media (min-width:640px){
+  .options-wrap{ display:grid !important; grid-template-columns:1fr 1fr !important; align-items:stretch; }
+}
+/* Pastki panel ham shu kenglikda */
+#tpDock .bottom-nav, #tpDock #bottom-stats, #tpDock .tp-izoh{ max-width:720px !important; }
 </style>
 
 </head>
@@ -1305,7 +1352,36 @@ function updateHeader(){
   if($('pctStat'))$('pctStat').textContent=pct+'%';
 }
 
+/* ── Izoh: bitta tugma barcha savollar uchun (sahifa qayta ochilganda ham saqlanadi) ── */
+let SHOW_EXPL = (function(){ try{ return localStorage.getItem('tp_show_expl')==='1'; }catch{ return false; } })();
+function _syncIzoh(){
+  const b=document.getElementById('explToggle'); if(!b) return;
+  b.classList.toggle('on', SHOW_EXPL);
+  b.textContent = SHOW_EXPL ? '💡 Izohni yopish' : '💡 Izohni ochish';
+}
+function toggleIzoh(){
+  SHOW_EXPL=!SHOW_EXPL;
+  try{ localStorage.setItem('tp_show_expl', SHOW_EXPL?'1':'0'); }catch{}
+  _syncIzoh();
+  if(typeof renderQ==='function' && typeof qs!=='undefined' && qs && qs.length) renderQ();
+}
+/* Pastki panel: izoh tugmasi + navigatsiya + statistika — har doim ekran pastida */
+function _buildDock(){
+  if(document.getElementById('tpDock')) return;
+  const qa=document.getElementById('quizArea'); if(!qa) return;
+  const d=document.createElement('div'); d.id='tpDock';
+  const b=document.createElement('button'); b.id='explToggle'; b.className='tp-izoh'; b.type='button';
+  b.onclick=toggleIzoh; d.appendChild(b);
+  const nav=qa.querySelector('.bottom-nav'); if(nav) d.appendChild(nav);
+  const st=document.getElementById('bottom-stats'); if(st) d.appendChild(st);
+  qa.appendChild(d);
+  const upd=()=>document.documentElement.style.setProperty('--dock-h', d.offsetHeight+'px');
+  upd(); window.addEventListener('resize', upd);
+  if(window.ResizeObserver) new ResizeObserver(upd).observe(d);
+  _syncIzoh();
+}
 function renderQ(){
+  _buildDock();
   const q=qs[cur];
   _liveCall('update', { idx: cur });
 
@@ -1348,7 +1424,7 @@ function renderQ(){
     explW.id='_explw';
     $('optionsWrap').insertAdjacentElement('afterend', explW);
   }
-  if(done && q.expl){
+  if(done && q.expl && SHOW_EXPL){
     explW.className='answer-explain';
     explW.innerHTML='<span class="answer-explain-ic">💡</span><span class="answer-explain-tx">'+esc(q.expl)+'</span>';
   } else {
